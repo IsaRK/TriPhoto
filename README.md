@@ -99,3 +99,27 @@ Le choix des dossiers OneDrive et les gestes de swipe restent à venir.
 La racine du OneDrive ne peut pas être choisie comme dossier : il faut ouvrir un
 dossier. L'attribution des dossiers aux directions de swipe et la sauvegarde de la
 configuration arrivent au lot suivant.
+
+## Limitations connues
+
+### Les dossiers partagés ne sont pas accessibles
+
+TriPhoto ne parcourt que **votre propre OneDrive**. Les dossiers que d'autres
+personnes ont partagés avec vous (« Partagés avec moi ») ne sont pas proposés.
+
+Ce n'est pas la lecture qui pose problème — `GET /me/drive/sharedWithMe` la
+permettrait — mais le tri lui-même. Microsoft Graph refuse de déplacer un fichier
+d'un OneDrive vers un autre : *« Items cannot be moved between Drives using this
+request »*. Il faudrait alors copier le média puis supprimer l'original, ce qui
+contredit deux principes du produit : déplacer plutôt que copier, et ne jamais
+supprimer réellement un fichier. Qui plus est, la suppression porterait sur le
+fichier de quelqu'un d'autre, et l'annulation deviendrait beaucoup plus fragile.
+
+À noter enfin que `sharedWithMe` est annoncé comme déprécié pour les comptes
+Microsoft personnels.
+
+Un cas fonctionnerait proprement : une source et des destinations toutes situées
+dans un **même** drive partagé, puisque le déplacement resterait interne à ce
+drive. Cela demanderait de transporter un `driveId` dans toute la configuration et
+d'élargir les permissions à `Files.ReadWrite.All`. La complexité n'a pas paru
+justifiée pour un usage qui reste marginal ; à rouvrir si le besoin se confirme.
