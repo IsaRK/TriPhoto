@@ -3,13 +3,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { estInteractionRequise, recupererJetonAcces, SCOPES } from '../auth/msal'
 import type { DossierOneDrive } from '../graph/dossiers'
 import { listerDossiersRacine, listerSousDossiers } from '../graph/dossiers'
-
-export type DossierChoisi = {
-  id: string
-  driveId: string
-  nom: string
-  chemin: string
-}
+import type { DossierConfigure } from './configuration'
 
 /** Une étape du fil d'Ariane. `id` vaut `null` pour la racine du OneDrive. */
 type EtapeChemin = {
@@ -36,7 +30,7 @@ const RACINE: EtapeChemin = { id: null, driveId: null, nom: 'OneDrive' }
 export default function ExplorateurDossiers({
   onChoisir,
 }: {
-  onChoisir: (dossier: DossierChoisi) => void
+  onChoisir: (dossier: DossierConfigure) => void
 }) {
   const { instance, accounts } = useMsal()
   const compte = accounts[0]

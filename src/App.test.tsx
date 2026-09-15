@@ -50,14 +50,6 @@ describe('routage de l’application', () => {
     expect(titre()).toBe('TriPhoto')
   })
 
-  it('navigue de la configuration vers le tri', async () => {
-    afficher('/')
-
-    await userEvent.click(screen.getByRole('link', { name: 'Commencer le tri' }))
-
-    expect(titre()).toBe('Tri')
-  })
-
   it('navigue du tri vers la configuration', async () => {
     afficher('/tri')
 

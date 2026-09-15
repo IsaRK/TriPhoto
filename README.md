@@ -54,7 +54,8 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 | Lot 0 | Fondations : Vite + React + TypeScript, thème et palette, routage, Vitest | ✅ Terminé |
 | Lot 1 | Authentification Microsoft (MSAL, comptes personnels) | ✅ Terminé |
 | Lot 2 | Explorateur de dossiers OneDrive (couche Graph de lecture) | ✅ Terminé |
-| Lots suivants | Écran de configuration (4 destinations + poubelle), listage des médias, gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
+| Lot 3 | Écran de configuration : 4 destinations, poubelle, persistance | ✅ Terminé |
+| Lots suivants | Listage des médias, gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
 
 ### Contenu du Lot 0
 
@@ -101,8 +102,28 @@ Le choix des dossiers OneDrive et les gestes de swipe restent à venir.
   compte les fichiers **et** les sous-dossiers
 
 La racine du OneDrive ne peut pas être choisie comme dossier : il faut ouvrir un
-dossier. L'attribution des dossiers aux directions de swipe et la sauvegarde de la
-configuration arrivent au lot suivant.
+dossier.
+
+### Contenu du Lot 3
+
+- Six emplacements à configurer (`src/config/configuration.ts`) : le dossier à
+  trier, les quatre destinations de swipe et la poubelle
+- Chaque destination porte la pastille de couleur de sa direction, prise dans
+  `src/tri/directions.ts` — la même source de vérité que l'écran de tri
+- Configuration persistée dans `localStorage` sous la clé `triphoto.configuration`,
+  avec pour chaque dossier son `id`, son `driveId`, son nom et son chemin lisible
+- Tout ce qui est relu du stockage est revalidé : un contenu corrompu, écrit par une
+  version antérieure ou modifié à la main, est ignoré plutôt que de faire planter
+  l'écran de tri
+- Un même dossier ne peut pas occuper deux emplacements : il serait à la fois source
+  et destination, et le tri tournerait en rond
+- « Commencer le tri » reste désactivé tant qu'un dossier source et au moins une
+  destination ne sont pas choisis
+- Chaque emplacement peut être vidé individuellement, et toute la configuration
+  effacée d'un coup
+
+La poubelle est facultative pour démarrer le tri ; le bouton « Supprimer » de l'écran
+de tri sera simplement indisponible tant qu'elle n'est pas choisie.
 
 ## Les dossiers partagés
 
