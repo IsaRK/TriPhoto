@@ -53,7 +53,8 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 | --- | --- | --- |
 | Lot 0 | Fondations : Vite + React + TypeScript, thème et palette, routage, Vitest | ✅ Terminé |
 | Lot 1 | Authentification Microsoft (MSAL, comptes personnels) | ✅ Terminé |
-| Lots suivants | Explorateur de dossiers OneDrive, listage des médias, gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
+| Lot 2 | Explorateur de dossiers OneDrive (couche Graph de lecture) | ✅ Terminé |
+| Lots suivants | Écran de configuration (4 destinations + poubelle), listage des médias, gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
 
 ### Contenu du Lot 0
 
@@ -81,3 +82,20 @@ Lors du déploiement, ajouter l'URL de production dans la même section
   toute seule (une cause persistante enchaînerait sinon les redirections)
 
 Le choix des dossiers OneDrive et les gestes de swipe restent à venir.
+
+### Contenu du Lot 2
+
+- Lecture des dossiers OneDrive en REST brut (`src/graph/dossiers.ts`) :
+  `GET /me/drive/root/children` et `GET /me/drive/items/{id}/children`, avec
+  `$select` explicite et suivi de la pagination (`@odata.nextLink`)
+- Seuls les dossiers sont retenus ; les fichiers sont ignorés à ce stade
+- Explorateur navigable (`src/config/ExplorateurDossiers.tsx`) : fil d'Ariane pour
+  remonter, états chargement / dossier vide / erreur avec « Réessayer »
+- Une fois connecté, l'écran d'accueil permet de parcourir son OneDrive et
+  d'afficher le dossier retenu
+- Le nombre indiqué à côté de chaque dossier est celui renvoyé par OneDrive : il
+  compte les fichiers **et** les sous-dossiers
+
+La racine du OneDrive ne peut pas être choisie comme dossier : il faut ouvrir un
+dossier. L'attribution des dossiers aux directions de swipe et la sauvegarde de la
+configuration arrivent au lot suivant.
