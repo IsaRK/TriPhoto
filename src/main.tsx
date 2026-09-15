@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
+import DemarrageAuth from './auth/DemarrageAuth'
 import './ui/theme.css'
 
 const racine = document.getElementById('root')
@@ -11,8 +12,10 @@ if (!racine) {
 
 createRoot(racine).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <DemarrageAuth>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </DemarrageAuth>
   </StrictMode>,
 )

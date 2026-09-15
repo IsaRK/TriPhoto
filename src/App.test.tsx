@@ -1,8 +1,23 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import App from './App'
+
+// L'écran d'accueil lit le compte MSAL : on simule un utilisateur non connecté
+// pour que ces tests ne portent que sur le routage. Les objets sont créés une
+// seule fois, comme le fait MsalProvider.
+const instanceSimulee = { loginRedirect: vi.fn(), logoutRedirect: vi.fn() }
+const aucunCompte: unknown[] = []
+
+vi.mock('@azure/msal-react', () => ({
+  useMsal: () => ({ instance: instanceSimulee, accounts: aucunCompte, inProgress: 'none' }),
+}))
+
+vi.mock('@azure/msal-browser', () => ({
+  InteractionRequiredAuthError: class extends Error {},
+  InteractionStatus: { Startup: 'startup', None: 'none' },
+}))
 
 function afficher(routeInitiale: string) {
   return render(
