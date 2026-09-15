@@ -103,7 +103,11 @@ describe('persistance de la configuration', () => {
       throw new Error('stockage plein')
     })
 
-    expect(() => ecrireConfiguration(configurationAvec({ source: dossier('a') }))).not.toThrow()
+    expect(ecrireConfiguration(configurationAvec({ source: dossier('a') }))).toBe(false)
+  })
+
+  it('confirme l’enregistrement quand le stockage fonctionne', () => {
+    expect(ecrireConfiguration(configurationAvec({ source: dossier('a') }))).toBe(true)
   })
 
   it('énumère exactement les emplacements du type Configuration', () => {

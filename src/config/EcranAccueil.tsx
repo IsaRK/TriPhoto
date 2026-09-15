@@ -40,6 +40,11 @@ const LIGNES: readonly LigneEmplacement[] = [
   { emplacement: 'poubelle', libelle: 'Poubelle', couleur: null },
 ]
 
+const MESSAGE_STOCKAGE_REFUSE =
+  'Votre navigateur refuse d’enregistrer la configuration : elle sera perdue au ' +
+  'prochain rechargement. C’est le cas en navigation privée, ou si le stockage du ' +
+  'site est bloqué.'
+
 export default function EcranAccueil() {
   const { accounts } = useMsal()
   const navigate = useNavigate()
@@ -50,7 +55,7 @@ export default function EcranAccueil() {
 
   const enregistrer = (nouvelle: Configuration) => {
     setConfiguration(nouvelle)
-    ecrireConfiguration(nouvelle)
+    setAvertissement(ecrireConfiguration(nouvelle) ? null : MESSAGE_STOCKAGE_REFUSE)
   }
 
   const ouvrirExplorateur = (emplacement: Emplacement) => {
@@ -71,7 +76,6 @@ export default function EcranAccueil() {
     }
     enregistrer(definirDossier(configuration, emplacementEnCours, dossier))
     setEmplacementEnCours(null)
-    setAvertissement(null)
   }
 
   const retirer = (emplacement: Emplacement) =>
@@ -118,6 +122,12 @@ export default function EcranAccueil() {
       </header>
 
       <div className="contenu">
+        {avertissement !== null ? (
+          <p className="avertissement" role="alert">
+            {avertissement}
+          </p>
+        ) : null}
+
         {estConnecte ? (
           <ul className="emplacements">
             {LIGNES.map((ligne) => (

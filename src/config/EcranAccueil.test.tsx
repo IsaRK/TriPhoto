@@ -96,6 +96,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllMocks()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('écran de configuration', () => {
@@ -180,6 +181,31 @@ describe('écran de configuration', () => {
 
     expect(window.localStorage.getItem(CLE)).toBeNull()
     expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeDisabled()
+  })
+
+  it('prévient quand le navigateur refuse d’enregistrer', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('stockage refusé')
+    })
+    afficher()
+
+    await choisirDossierPour('Dossier à trier', 'Photos')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('refuse d’enregistrer')
+  })
+
+  it('retrouve les dossiers choisis après un rechargement de la page', async () => {
+    const premierAffichage = afficher()
+
+    await choisirDossierPour('Dossier à trier', 'Photos')
+    await choisirDossierPour('Gauche', 'Vacances')
+
+    premierAffichage.unmount()
+    afficher()
+
+    expect(screen.getByText('OneDrive / Photos')).toBeInTheDocument()
+    expect(screen.getByText('OneDrive / Vacances')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeEnabled()
   })
 
   it('relit la configuration enregistrée et mène à l’écran de tri', async () => {

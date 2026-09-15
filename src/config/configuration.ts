@@ -77,12 +77,18 @@ export function lireConfiguration(): Configuration {
   return retirerLesDoublons(configuration)
 }
 
-export function ecrireConfiguration(configuration: Configuration): void {
+/**
+ * Enregistre la configuration. Renvoie `false` si le navigateur a refusé
+ * d'écrire (navigation privée, stockage plein) : l'appelant doit le dire à
+ * l'utilisateur, sinon ses choix disparaîtraient au rechargement sans qu'il
+ * comprenne pourquoi.
+ */
+export function ecrireConfiguration(configuration: Configuration): boolean {
   try {
     window.localStorage.setItem(CLE_STOCKAGE, JSON.stringify(configuration))
+    return true
   } catch {
-    // Navigation privée ou stockage plein : la configuration reste valable pour
-    // la session en cours, elle ne survivra simplement pas au rechargement.
+    return false
   }
 }
 
@@ -90,7 +96,8 @@ export function effacerConfiguration(): void {
   try {
     window.localStorage.removeItem(CLE_STOCKAGE)
   } catch {
-    // Même raison que ci-dessus.
+    // Rien à signaler : l'utilisateur voulait justement se débarrasser de ces
+    // choix, et ils ont bien disparu de l'écran.
   }
 }
 
