@@ -1,21 +1,21 @@
 /* ------------------------------------------------------------------
-   Thème TriPhoto : palette Pantone + reset et layout mobile plein écran.
+   Thème TriPhoto : palette, reset et layout mobile plein écran.
+   Parti pris visuel : beaucoup de vide, aucune ombre, aucune bordure
+   décorative. Les pastilles de couleur des directions sont le seul
+   élément fort de l'interface.
    ------------------------------------------------------------------ */
 
 :root {
-  --jaune: #ffb94b;
-  --cyan: #28b2c7;
-  --teal: #2b8d9c;
-  --bleu-fonce: #33546c;
+  --orange: #ffa530;
+  --vert-eau: #50aca2;
+  --bleu: #405885;
+  --rose: #e0748b;
 
   --fond: #f7f5f2;
-  --surface: #ffffff;
-  --texte: #1f2d38;
-  --texte-doux: #667987;
-  --bordure: #e4e0da;
+  --texte: var(--bleu);
+  --texte-doux: #8b93a5;
 
-  --rayon: 14px;
-  --espace: 16px;
+  --espace: 24px;
 
   /* Marges de sécurité des téléphones (encoche, barre de geste), y compris en paysage. */
   --marge-haut: env(safe-area-inset-top, 0px);
@@ -68,21 +68,6 @@ button {
   background: none;
 }
 
-a {
-  color: var(--teal);
-}
-
-h1 {
-  font-size: 1.6rem;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-}
-
-h2 {
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
 /* ---------------------------- Layout ---------------------------- */
 
 .ecran {
@@ -99,52 +84,106 @@ h2 {
   gap: var(--espace);
 }
 
-.ecran__entete {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ecran__sous-titre {
-  color: var(--texte-doux);
-  font-size: 0.9rem;
-}
-
-.carte {
-  padding: var(--espace);
-  border: 1px solid var(--bordure);
-  border-radius: var(--rayon);
-  background: var(--surface);
-}
-
-.bouton-principal {
-  padding: 14px 18px;
-  border-radius: var(--rayon);
-  background: var(--bleu-fonce);
-  color: var(--surface);
+.titre {
+  font-size: 1.75rem;
   font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.accroche {
+  margin-top: 6px;
+  max-width: 26ch;
+  color: var(--texte-doux);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Le contenu central occupe tout l'espace libre entre l'en-tête et l'action. */
+.contenu {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espace);
+}
+
+.note {
+  max-width: 34ch;
+  color: var(--texte-doux);
+  font-size: 0.85rem;
+  line-height: 1.5;
   text-align: center;
+}
+
+/* Action principale en bas de l'écran : atteignable au pouce sur mobile. */
+.action {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--bleu);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
   text-decoration: none;
 }
 
-/* ------------------- Liste des directions de swipe ------------------- */
+.action--discrete {
+  background: none;
+  color: var(--texte-doux);
+  font-weight: 500;
+}
 
-.directions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* --------------- Boussole des directions de swipe --------------- */
+
+.boussole {
+  display: grid;
+  width: 100%;
+  max-width: 300px;
+  grid-template-areas:
+    '. haut .'
+    'gauche . droite'
+    '. bas .';
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  justify-items: center;
   list-style: none;
 }
 
 .direction {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.direction--gauche {
+  grid-area: gauche;
+}
+
+.direction--droite {
+  grid-area: droite;
+}
+
+.direction--haut {
+  grid-area: haut;
+}
+
+.direction--bas {
+  grid-area: bas;
 }
 
 .direction__pastille {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
+  width: clamp(56px, 19vw, 76px);
+  height: clamp(56px, 19vw, 76px);
   border-radius: 50%;
+}
+
+.direction__libelle {
+  color: var(--texte-doux);
+  font-size: 0.8rem;
 }

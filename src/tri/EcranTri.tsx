@@ -8,15 +8,17 @@ import { Link } from 'react-router-dom'
 export default function EcranTri() {
   return (
     <main className="ecran">
-      <header className="ecran__entete">
-        <h1>Tri</h1>
-        <p className="ecran__sous-titre">
-          L'affichage des médias et les gestes de swipe seront disponibles dans
-          un prochain lot.
-        </p>
+      <header>
+        <h1 className="titre">Tri</h1>
       </header>
 
-      <Link className="bouton-principal" to="/">
+      <div className="contenu">
+        <p className="note">
+          Les médias et les gestes de swipe arriveront dans un prochain lot.
+        </p>
+      </div>
+
+      <Link className="action action--discrete" to="/">
         Retour à la configuration
       </Link>
     </main>

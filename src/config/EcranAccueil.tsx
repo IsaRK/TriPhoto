@@ -9,38 +9,32 @@ import { DIRECTIONS } from '../tri/directions'
 export default function EcranAccueil() {
   return (
     <main className="ecran">
-      <header className="ecran__entete">
-        <h1>TriPhoto</h1>
-        <p className="ecran__sous-titre">
-          Trier ses photos et vidéos OneDrive d'un simple geste.
-        </p>
+      <header>
+        <h1 className="titre">TriPhoto</h1>
+        <p className="accroche">Trier ses photos et vidéos OneDrive d'un simple geste.</p>
       </header>
 
-      <section className="carte">
-        <h2>Configuration</h2>
-        <p className="ecran__sous-titre">
-          Le choix du dossier source et des dossiers de destination sera
-          disponible dans un prochain lot.
-        </p>
-      </section>
-
-      <section className="carte">
-        <h2>Directions de swipe</h2>
-        <ul className="directions">
+      <div className="contenu">
+        <ul className="boussole">
           {DIRECTIONS.map((info) => (
-            <li key={info.direction} className="direction">
+            <li key={info.direction} className={`direction direction--${info.direction}`}>
               <span
                 className="direction__pastille"
                 style={{ backgroundColor: info.couleur }}
                 aria-hidden="true"
               />
-              <span>{info.libelle}</span>
+              <span className="direction__libelle">{info.libelle}</span>
             </li>
           ))}
         </ul>
-      </section>
 
-      <Link className="bouton-principal" to="/tri">
+        <p className="note">
+          Chaque couleur correspond à un dossier de destination. Le choix des dossiers
+          arrivera dans un prochain lot.
+        </p>
+      </div>
+
+      <Link className="action" to="/tri">
         Commencer le tri
       </Link>
     </main>

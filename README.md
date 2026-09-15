@@ -30,9 +30,11 @@ Copier `.env.example` vers `.env.local` et y renseigner `VITE_MSAL_CLIENT_ID`
 ### Contenu du Lot 0
 
 - Coquille Vite + React + TypeScript en `strict: true`
-- Thème CSS avec la palette Pantone et layout mobile plein écran (`100dvh`, `viewport-fit=cover`)
+- Thème CSS avec la palette (orange `#FFA530`, vert d'eau `#50ACA2`, bleu `#405885`,
+  rose `#E0748B`, fond `#F7F5F2`) et layout mobile plein écran (`100dvh`, `viewport-fit=cover`)
 - Table des directions de swipe (`src/tri/directions.ts`), source de vérité unique des
-  couleurs associées à chaque direction
+  couleurs associées à chaque direction : gauche → bleu, droite → orange,
+  haut → vert d'eau, bas → rose
 - Routage `react-router-dom` : `/` (accueil / configuration) et `/tri`
 - Tests Vitest + Testing Library (routage et cohérence des directions)
 

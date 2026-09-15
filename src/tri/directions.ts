@@ -18,8 +18,8 @@ export type InfoDirection = {
 }
 
 export const DIRECTIONS: readonly InfoDirection[] = [
-  { direction: 'gauche', libelle: 'Gauche', couleur: 'var(--cyan)' },
-  { direction: 'droite', libelle: 'Droite', couleur: 'var(--jaune)' },
-  { direction: 'haut', libelle: 'Haut', couleur: 'var(--teal)' },
-  { direction: 'bas', libelle: 'Bas', couleur: 'var(--bleu-fonce)' },
+  { direction: 'gauche', libelle: 'Gauche', couleur: 'var(--bleu)' },
+  { direction: 'droite', libelle: 'Droite', couleur: 'var(--orange)' },
+  { direction: 'haut', libelle: 'Haut', couleur: 'var(--vert-eau)' },
+  { direction: 'bas', libelle: 'Bas', couleur: 'var(--rose)' },
 ]
