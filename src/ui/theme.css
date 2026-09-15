@@ -93,6 +93,24 @@ button {
   letter-spacing: -0.02em;
 }
 
+/* Le logo tient lieu de titre de niveau 1 : le mot « TriPhoto » reste dans le SVG. */
+.titre-logo {
+  display: flex;
+}
+
+/* La hauteur du logo est fixée, la largeur suit le rapport du viewBox. */
+.logo {
+  display: block;
+  height: 44px;
+}
+
+.logo__mot {
+  fill: var(--texte);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
 .accroche {
   margin-top: 6px;
   max-width: 26ch;
@@ -195,7 +213,6 @@ button {
 .direction__pastille {
   width: clamp(56px, 19vw, 76px);
   height: clamp(56px, 19vw, 76px);
-  border-radius: 50%;
 }
 
 .direction__libelle {
@@ -285,8 +302,43 @@ button {
 
 .emplacement {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   border-bottom: 1px solid var(--trait);
+}
+
+.emplacement__ligne {
+  display: flex;
+  align-items: center;
+}
+
+/* Le titre court, réservé aux quatre directions : c'est lui qui sera rappelé pendant le tri. */
+.emplacement__titre {
+  display: flex;
+  align-items: center;
+  padding: 0 4px 12px 44px;
+  gap: 12px;
+}
+
+.emplacement__titre-libelle {
+  color: var(--texte-doux);
+  font-size: 0.8rem;
+}
+
+.emplacement__titre input {
+  width: 13ch;
+  padding: 8px 10px;
+  border: 1px solid var(--trait);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texte);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.emplacement__titre input:focus-visible {
+  border-color: var(--texte);
+  outline: 2px solid var(--texte);
+  outline-offset: 2px;
 }
 
 .emplacement__choix {
@@ -303,7 +355,32 @@ button {
   width: 28px;
   height: 28px;
   flex-shrink: 0;
-  border-radius: 50%;
+}
+
+/*
+ * La forme pointe vers la direction du geste : on reconnaît la destination sans
+ * lire l'étiquette. Le point de départ de chaque polygone est le sommet.
+ * Les mêmes quatre formes servent à la boussole de l'accueil et aux pastilles de
+ * la liste : une seule règle par direction, pour qu'elles ne divergent pas.
+ */
+.emplacement__pastille--gauche,
+.direction--gauche .direction__pastille {
+  clip-path: polygon(0% 50%, 45% 0%, 100% 0%, 100% 100%, 45% 100%);
+}
+
+.emplacement__pastille--droite,
+.direction--droite .direction__pastille {
+  clip-path: polygon(100% 50%, 55% 100%, 0% 100%, 0% 0%, 55% 0%);
+}
+
+.emplacement__pastille--haut,
+.direction--haut .direction__pastille {
+  clip-path: polygon(50% 0%, 100% 45%, 100% 100%, 0% 100%, 0% 45%);
+}
+
+.emplacement__pastille--bas,
+.direction--bas .direction__pastille {
+  clip-path: polygon(50% 100%, 0% 55%, 0% 0%, 100% 0%, 100% 55%);
 }
 
 /* Source et poubelle ne portent pas de couleur de direction : un simple cerne. */

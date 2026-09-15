@@ -1,7 +1,7 @@
 import type { DirectionSwipe } from '../tri/directions'
 
-/** Un dossier OneDrive retenu dans la configuration. */
-export type DossierConfigure = {
+/** Ce que l'explorateur sait produire : un dossier OneDrive, sans titre court. */
+export type DossierChoisi = {
   id: string
   /** Drive propriétaire du dossier : le nôtre, ou celui d'un dossier partagé. */
   driveId: string
@@ -9,6 +9,18 @@ export type DossierConfigure = {
   /** Chemin lisible affiché à l'utilisateur, ex. « OneDrive / Photos / 2024 ». */
   chemin: string
 }
+
+/**
+ * Un dossier posé sur un emplacement. Il ajoute au dossier choisi un titre
+ * court, que l'écran de tri affichera à côté de chaque direction : un chemin
+ * complet serait illisible sur une carte en plein écran.
+ */
+export type DossierConfigure = DossierChoisi & {
+  titre: string
+}
+
+/** Un titre plus long ne tiendrait pas à côté d'une direction sur un écran de téléphone. */
+export const TITRE_LONGUEUR_MAX = 10
 
 /**
  * Les six emplacements configurables. Les quatre destinations portent ici le
@@ -100,6 +112,62 @@ export function definirDossier(
   return { ...configuration, [emplacement]: dossier }
 }
 
+/**
+ * Enregistre le titre en cours de frappe. On se contente de couper à la
+ * longueur maximale : corriger le texte à chaque caractère empêcherait de vider
+ * le champ pour le retaper, ou d'y saisir une espace.
+ */
+export function definirTitre(
+  configuration: Configuration,
+  emplacement: Emplacement,
+  titre: string,
+): Configuration {
+  const dossier = configuration[emplacement]
+  if (dossier === null) {
+    return configuration
+  }
+  return {
+    ...configuration,
+    [emplacement]: { ...dossier, titre: couperTitre(titre) },
+  }
+}
+
+/**
+ * À la sortie du champ : un titre vide ou fait d'espaces repart du nom du
+ * dossier, pour ne pas laisser une étiquette vide sur l'écran de tri.
+ */
+export function normaliserTitre(
+  configuration: Configuration,
+  emplacement: Emplacement,
+): Configuration {
+  const dossier = configuration[emplacement]
+  if (dossier === null) {
+    return configuration
+  }
+  const titre = dossier.titre.trim()
+  return {
+    ...configuration,
+    [emplacement]: {
+      ...dossier,
+      titre: titre === '' ? titreParDefaut(dossier.nom) : titre,
+    },
+  }
+}
+
+/** Titre proposé au moment du choix : le nom du dossier, raccourci si besoin. */
+export function titreParDefaut(nom: string): string {
+  const titre = couperTitre(nom.trim()).trim()
+  return titre === '' ? 'Dossier' : titre
+}
+
+/**
+ * Coupe à la longueur maximale en comptant les caractères affichés et non les
+ * unités UTF-16 : `slice` couperait un emoji en deux moitiés illisibles.
+ */
+function couperTitre(texte: string): string {
+  return [...texte].slice(0, TITRE_LONGUEUR_MAX).join('')
+}
+
 export function retirerDossier(
   configuration: Configuration,
   emplacement: Emplacement,
@@ -115,7 +183,7 @@ export function retirerDossier(
 export function emplacementDejaUtilise(
   configuration: Configuration,
   emplacementVise: Emplacement,
-  dossier: DossierConfigure,
+  dossier: DossierChoisi,
 ): Emplacement | null {
   for (const emplacement of EMPLACEMENTS) {
     if (emplacement === emplacementVise) {
@@ -152,14 +220,25 @@ function validerDossier(valeur: unknown): DossierConfigure | null {
   if (typeof valeur !== 'object' || valeur === null) {
     return null
   }
-  const { id, driveId, nom, chemin } = valeur as Record<string, unknown>
+  const { id, driveId, nom, chemin, titre } = valeur as Record<string, unknown>
   if (!estTexteRempli(id) || !estTexteRempli(driveId)) {
     return null
   }
   if (!estTexteRempli(nom) || !estTexteRempli(chemin)) {
     return null
   }
-  return { id, driveId, nom, chemin }
+  // Une configuration peut arriver ici sans titre utilisable : soit elle a été
+  // enregistrée avant l'existence des titres courts, soit le champ a été laissé
+  // vide en cours de frappe. Dans les deux cas on la complète plutôt que de la
+  // jeter, sinon un rechargement ferait perdre les dossiers déjà choisis.
+  const titreLu = estTexteRempli(titre) ? couperTitre(titre).trim() : ''
+  return {
+    id,
+    driveId,
+    nom,
+    chemin,
+    titre: titreLu === '' ? titreParDefaut(nom) : titreLu,
+  }
 }
 
 /** `valeur is string` indique au compilateur que la valeur est une chaîne après cet appel. */

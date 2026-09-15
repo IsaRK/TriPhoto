@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import EcranAccueil from './EcranAccueil'
 import { oublierIdDeMonDrive } from '../graph/dossiers'
 import type { Configuration } from './configuration'
-import { CONFIGURATION_VIDE } from './configuration'
+import { CONFIGURATION_VIDE, TITRE_LONGUEUR_MAX } from './configuration'
 
 const CLE = 'triphoto.configuration'
 
@@ -18,7 +18,11 @@ const instanceSimulee = {
 const compte = { homeAccountId: 'compte-1', username: 'alice@outlook.com' }
 
 vi.mock('@azure/msal-react', () => ({
-  useMsal: () => ({ instance: instanceSimulee, accounts: [{ ...compte }], inProgress: 'none' }),
+  useMsal: () => ({
+    instance: instanceSimulee,
+    accounts: [{ ...compte }],
+    inProgress: 'none',
+  }),
 }))
 
 vi.mock('@azure/msal-browser', () => ({
@@ -27,7 +31,11 @@ vi.mock('@azure/msal-browser', () => ({
 }))
 
 function json(donnees: unknown): Promise<Response> {
-  return Promise.resolve({ ok: true, status: 200, json: async () => donnees } as Response)
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    json: async () => donnees,
+  } as Response)
 }
 
 /** Deux dossiers à la racine du OneDrive, et un profil pour le bloc « compte ». */
@@ -53,7 +61,13 @@ function simulerGraph() {
 }
 
 function dossier(id: string, nom: string) {
-  return { id, driveId: 'mon-drive', nom, chemin: `OneDrive / ${nom}` }
+  return {
+    id,
+    driveId: 'mon-drive',
+    nom,
+    chemin: `OneDrive / ${nom}`,
+    titre: nom.slice(0, 10),
+  }
 }
 
 function enregistrer(champs: Partial<Configuration>) {
@@ -89,7 +103,9 @@ async function choisirDossierPour(libelleEmplacement: string, nom: string) {
 beforeEach(() => {
   window.localStorage.clear()
   oublierIdDeMonDrive()
-  instanceSimulee.acquireTokenSilent.mockResolvedValue({ accessToken: 'jeton-de-test' })
+  instanceSimulee.acquireTokenSilent.mockResolvedValue({
+    accessToken: 'jeton-de-test',
+  })
   vi.stubGlobal('fetch', simulerGraph())
 })
 
@@ -155,7 +171,10 @@ describe('écran de configuration', () => {
   })
 
   it('remplace le dossier d’un emplacement déjà rempli', async () => {
-    enregistrer({ source: dossier('photos', 'Photos'), gauche: dossier('vacances', 'Vacances') })
+    enregistrer({
+      source: dossier('photos', 'Photos'),
+      gauche: dossier('vacances', 'Vacances'),
+    })
     afficher()
 
     await choisirDossierPour('Gauche', 'Famille')
@@ -164,13 +183,89 @@ describe('écran de configuration', () => {
   })
 
   it('retire un dossier de son emplacement', async () => {
-    enregistrer({ source: dossier('photos', 'Photos'), gauche: dossier('vacances', 'Vacances') })
+    enregistrer({
+      source: dossier('photos', 'Photos'),
+      gauche: dossier('vacances', 'Vacances'),
+    })
     afficher()
 
     await userEvent.click(screen.getByRole('button', { name: /Retirer le dossier de . Gauche/ }))
 
     expect(configurationEnregistree().gauche).toBeNull()
     expect(configurationEnregistree().source).toEqual(dossier('photos', 'Photos'))
+  })
+
+  it('nomme une direction avec le nom du dossier choisi', async () => {
+    enregistrer({ source: dossier('photos', 'Photos') })
+    afficher()
+
+    await choisirDossierPour('Gauche', 'Vacances')
+
+    expect(screen.getByRole('textbox', { name: /Titre court de . Gauche/ })).toHaveValue('Vacances')
+  })
+
+  it('n’offre un titre court que sur les quatre directions', () => {
+    enregistrer({
+      source: dossier('photos', 'Photos'),
+      gauche: dossier('vacances', 'Vacances'),
+      droite: dossier('famille', 'Famille'),
+      haut: dossier('amis', 'Amis'),
+      bas: dossier('divers', 'Divers'),
+      poubelle: dossier('corbeille', 'Corbeille'),
+    })
+    afficher()
+
+    const champs = screen.getAllByRole('textbox')
+
+    expect(champs).toHaveLength(4)
+    expect(screen.queryByRole('textbox', { name: /Dossier à trier/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /Poubelle/ })).not.toBeInTheDocument()
+  })
+
+  it('enregistre le titre court saisi', async () => {
+    enregistrer({
+      source: dossier('photos', 'Photos'),
+      gauche: dossier('vacances', 'Vacances'),
+    })
+    afficher()
+
+    const champ = screen.getByRole('textbox', {
+      name: /Titre court de . Gauche/,
+    })
+    await userEvent.clear(champ)
+    await userEvent.type(champ, 'Été 2024')
+    await userEvent.tab()
+
+    expect(configurationEnregistree().gauche?.titre).toBe('Été 2024')
+  })
+
+  it('revient au titre par défaut quand on laisse le champ vide', async () => {
+    enregistrer({
+      source: dossier('photos', 'Photos'),
+      gauche: dossier('vacances', 'Vacances'),
+    })
+    afficher()
+
+    const champ = screen.getByRole('textbox', {
+      name: /Titre court de . Gauche/,
+    })
+    await userEvent.clear(champ)
+    await userEvent.tab()
+
+    expect(configurationEnregistree().gauche?.titre).toBe('Vacances')
+  })
+
+  it('empêche de saisir plus de dix caractères', () => {
+    enregistrer({
+      source: dossier('photos', 'Photos'),
+      gauche: dossier('vacances', 'Vacances'),
+    })
+    afficher()
+
+    expect(screen.getByRole('textbox', { name: /Titre court de . Gauche/ })).toHaveAttribute(
+      'maxlength',
+      String(TITRE_LONGUEUR_MAX),
+    )
   })
 
   it('prévient quand le navigateur refuse d’enregistrer', async () => {
@@ -199,7 +294,10 @@ describe('écran de configuration', () => {
   })
 
   it('relit la configuration enregistrée et mène à l’écran de tri', async () => {
-    enregistrer({ source: dossier('photos', 'Photos'), droite: dossier('vacances', 'Vacances') })
+    enregistrer({
+      source: dossier('photos', 'Photos'),
+      droite: dossier('vacances', 'Vacances'),
+    })
     afficher()
 
     await userEvent.click(screen.getByRole('button', { name: 'Commencer le tri' }))
