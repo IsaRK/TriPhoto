@@ -88,7 +88,9 @@ export default function CompteMicrosoft() {
   if (etat.statut === 'sessionExpiree') {
     return (
       <div className="pile">
-        <p className="note">Votre session Microsoft a expiré.</p>
+        <p className="note">
+          Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation.
+        </p>
         <button type="button" className="action" onClick={connecter}>
           Se reconnecter
         </button>

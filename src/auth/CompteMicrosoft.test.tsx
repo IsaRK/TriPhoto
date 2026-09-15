@@ -59,7 +59,7 @@ describe('bloc compte Microsoft', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter avec Microsoft' }))
 
     expect(instanceSimulee.loginRedirect).toHaveBeenCalledWith({
-      scopes: ['User.Read', 'Files.ReadWrite'],
+      scopes: ['User.Read', 'Files.ReadWrite', 'Files.ReadWrite.All'],
     })
   })
 
@@ -141,7 +141,9 @@ describe('bloc compte Microsoft', () => {
     render(<CompteMicrosoft />)
     const bouton = await screen.findByRole('button', { name: 'Se reconnecter' })
 
-    expect(screen.getByText('Votre session Microsoft a expiré.')).toBeInTheDocument()
+    expect(
+      screen.getByText("Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation."),
+    ).toBeInTheDocument()
     expect(instanceSimulee.loginRedirect).not.toHaveBeenCalled()
     await userEvent.click(bouton)
     expect(instanceSimulee.loginRedirect).toHaveBeenCalledTimes(1)
