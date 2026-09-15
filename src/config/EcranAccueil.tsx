@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
+import CompteMicrosoft from '../auth/CompteMicrosoft'
 import { DIRECTIONS } from '../tri/directions'
 
 /**
  * Écran d'accueil / configuration.
- * Lot 0 : simple coquille. La connexion Microsoft et le choix des dossiers
- * OneDrive arriveront dans les lots suivants.
+ * Lot 1 : connexion Microsoft. Le choix des dossiers OneDrive arrivera dans les
+ * lots suivants.
  */
 export default function EcranAccueil() {
   return (
@@ -34,9 +35,12 @@ export default function EcranAccueil() {
         </p>
       </div>
 
-      <Link className="action" to="/tri">
-        Commencer le tri
-      </Link>
+      <div className="pile">
+        <CompteMicrosoft />
+        <Link className="action action--discrete" to="/tri">
+          Commencer le tri
+        </Link>
+      </div>
     </main>
   )
 }

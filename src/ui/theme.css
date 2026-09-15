@@ -138,6 +138,18 @@ button {
   font-weight: 500;
 }
 
+/* Empile les actions du bas de l'écran. */
+.pile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compte {
+  font-size: 0.95rem;
+  text-align: center;
+}
+
 /* --------------- Boussole des directions de swipe --------------- */
 
 .boussole {
