@@ -271,4 +271,82 @@ button {
 .action:disabled {
   background: var(--trait);
   color: var(--texte-doux);
+  cursor: default;
+}
+
+/* ------------- Liste des emplacements à configurer -------------- */
+
+.emplacements {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  list-style: none;
+}
+
+.emplacement {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--trait);
+}
+
+.emplacement__choix {
+  display: flex;
+  min-height: 64px;
+  flex: 1;
+  align-items: center;
+  gap: 16px;
+  color: var(--texte);
+  text-align: left;
+}
+
+.emplacement__pastille {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+/* Source et poubelle ne portent pas de couleur de direction : un simple cerne. */
+.emplacement__puce {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 2px solid var(--trait);
+  border-radius: 50%;
+}
+
+.emplacement__textes {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emplacement__libelle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.emplacement__dossier {
+  overflow: hidden;
+  color: var(--texte-doux);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emplacement__retirer {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--texte-doux);
+}
+
+.avertissement {
+  color: var(--rose);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
