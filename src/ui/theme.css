@@ -1,0 +1,189 @@
+/* ------------------------------------------------------------------
+   Thème TriPhoto : palette, reset et layout mobile plein écran.
+   Parti pris visuel : beaucoup de vide, aucune ombre, aucune bordure
+   décorative. Les pastilles de couleur des directions sont le seul
+   élément fort de l'interface.
+   ------------------------------------------------------------------ */
+
+:root {
+  --orange: #ffa530;
+  --vert-eau: #50aca2;
+  --bleu: #405885;
+  --rose: #e0748b;
+
+  --fond: #f7f5f2;
+  --texte: var(--bleu);
+  --texte-doux: #8b93a5;
+
+  --espace: 24px;
+
+  /* Marges de sécurité des téléphones (encoche, barre de geste), y compris en paysage. */
+  --marge-haut: env(safe-area-inset-top, 0px);
+  --marge-bas: env(safe-area-inset-bottom, 0px);
+  --marge-gauche: env(safe-area-inset-left, 0px);
+  --marge-droite: env(safe-area-inset-right, 0px);
+
+  color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--texte);
+  background-color: var(--fond);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  /* Posé sur html (et non body) : c'est la racine qui neutralise le rebond de
+     scroll et le pull-to-refresh, qui parasiteraient les gestes de swipe. */
+  overscroll-behavior: none;
+}
+
+body {
+  /* 100dvh suit la barre d'adresse mobile qui se rétracte, contrairement à 100vh. */
+  min-height: 100dvh;
+  background-color: var(--fond);
+  overflow: hidden;
+  /* Supprime le délai et le zoom au double-tap. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* ---------------------------- Layout ---------------------------- */
+
+.ecran {
+  display: flex;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: calc(var(--marge-haut) + var(--espace))
+    calc(var(--marge-droite) + var(--espace))
+    calc(var(--marge-bas) + var(--espace))
+    calc(var(--marge-gauche) + var(--espace));
+  gap: var(--espace);
+}
+
+.titre {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.accroche {
+  margin-top: 6px;
+  max-width: 26ch;
+  color: var(--texte-doux);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Le contenu central occupe tout l'espace libre entre l'en-tête et l'action. */
+.contenu {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espace);
+}
+
+.note {
+  max-width: 34ch;
+  color: var(--texte-doux);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Action principale en bas de l'écran : atteignable au pouce sur mobile. */
+.action {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--bleu);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.action--discrete {
+  background: none;
+  color: var(--texte-doux);
+  font-weight: 500;
+}
+
+/* --------------- Boussole des directions de swipe --------------- */
+
+.boussole {
+  display: grid;
+  width: 100%;
+  max-width: 300px;
+  grid-template-areas:
+    '. haut .'
+    'gauche . droite'
+    '. bas .';
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  justify-items: center;
+  list-style: none;
+}
+
+.direction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.direction--gauche {
+  grid-area: gauche;
+}
+
+.direction--droite {
+  grid-area: droite;
+}
+
+.direction--haut {
+  grid-area: haut;
+}
+
+.direction--bas {
+  grid-area: bas;
+}
+
+.direction__pastille {
+  width: clamp(56px, 19vw, 76px);
+  height: clamp(56px, 19vw, 76px);
+  border-radius: 50%;
+}
+
+.direction__libelle {
+  color: var(--texte-doux);
+  font-size: 0.8rem;
+}
