@@ -1,0 +1,150 @@
+/* ------------------------------------------------------------------
+   Thème TriPhoto : palette Pantone + reset et layout mobile plein écran.
+   ------------------------------------------------------------------ */
+
+:root {
+  --jaune: #ffb94b;
+  --cyan: #28b2c7;
+  --teal: #2b8d9c;
+  --bleu-fonce: #33546c;
+
+  --fond: #f7f5f2;
+  --surface: #ffffff;
+  --texte: #1f2d38;
+  --texte-doux: #667987;
+  --bordure: #e4e0da;
+
+  --rayon: 14px;
+  --espace: 16px;
+
+  /* Marges de sécurité des téléphones (encoche, barre de geste), y compris en paysage. */
+  --marge-haut: env(safe-area-inset-top, 0px);
+  --marge-bas: env(safe-area-inset-bottom, 0px);
+  --marge-gauche: env(safe-area-inset-left, 0px);
+  --marge-droite: env(safe-area-inset-right, 0px);
+
+  color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--texte);
+  background-color: var(--fond);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  /* Posé sur html (et non body) : c'est la racine qui neutralise le rebond de
+     scroll et le pull-to-refresh, qui parasiteraient les gestes de swipe. */
+  overscroll-behavior: none;
+}
+
+body {
+  /* 100dvh suit la barre d'adresse mobile qui se rétracte, contrairement à 100vh. */
+  min-height: 100dvh;
+  background-color: var(--fond);
+  overflow: hidden;
+  /* Supprime le délai et le zoom au double-tap. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a {
+  color: var(--teal);
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* ---------------------------- Layout ---------------------------- */
+
+.ecran {
+  display: flex;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: calc(var(--marge-haut) + var(--espace))
+    calc(var(--marge-droite) + var(--espace))
+    calc(var(--marge-bas) + var(--espace))
+    calc(var(--marge-gauche) + var(--espace));
+  gap: var(--espace);
+}
+
+.ecran__entete {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ecran__sous-titre {
+  color: var(--texte-doux);
+  font-size: 0.9rem;
+}
+
+.carte {
+  padding: var(--espace);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+}
+
+.bouton-principal {
+  padding: 14px 18px;
+  border-radius: var(--rayon);
+  background: var(--bleu-fonce);
+  color: var(--surface);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* ------------------- Liste des directions de swipe ------------------- */
+
+.directions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+}
+
+.direction {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.direction__pastille {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
