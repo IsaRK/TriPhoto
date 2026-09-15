@@ -6,9 +6,7 @@ import {
   compterDestinations,
   definirDossier,
   ecrireConfiguration,
-  effacerConfiguration,
   emplacementDejaUtilise,
-  estConfigurationVide,
   lireConfiguration,
   peutCommencerLeTri,
   retirerDossier,
@@ -113,14 +111,6 @@ describe('persistance de la configuration', () => {
   it('énumère exactement les emplacements du type Configuration', () => {
     expect([...EMPLACEMENTS]).toEqual(Object.keys(CONFIGURATION_VIDE))
   })
-
-  it('efface la configuration enregistrée', () => {
-    ecrireConfiguration(configurationAvec({ source: dossier('a') }))
-
-    effacerConfiguration()
-
-    expect(lireConfiguration()).toEqual(CONFIGURATION_VIDE)
-  })
 })
 
 describe('modification de la configuration', () => {
@@ -194,10 +184,5 @@ describe('conditions de démarrage du tri', () => {
     })
 
     expect(compterDestinations(configuration)).toBe(2)
-  })
-
-  it('reconnaît une configuration entièrement vide', () => {
-    expect(estConfigurationVide(CONFIGURATION_VIDE)).toBe(true)
-    expect(estConfigurationVide(configurationAvec({ poubelle: dossier('p') }))).toBe(false)
   })
 })

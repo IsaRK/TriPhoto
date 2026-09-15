@@ -8,13 +8,10 @@ import {
   compterDestinations,
   definirDossier,
   ecrireConfiguration,
-  effacerConfiguration,
   emplacementDejaUtilise,
-  estConfigurationVide,
   lireConfiguration,
   peutCommencerLeTri,
   retirerDossier,
-  CONFIGURATION_VIDE,
 } from './configuration'
 import ExplorateurDossiers from './ExplorateurDossiers'
 
@@ -81,12 +78,6 @@ export default function EcranAccueil() {
   const retirer = (emplacement: Emplacement) =>
     enregistrer(retirerDossier(configuration, emplacement))
 
-  const toutEffacer = () => {
-    setConfiguration(CONFIGURATION_VIDE)
-    effacerConfiguration()
-    setAvertissement(null)
-  }
-
   if (estConnecte && emplacementEnCours !== null) {
     return (
       <main className="ecran">
@@ -118,7 +109,6 @@ export default function EcranAccueil() {
     <main className="ecran">
       <header>
         <h1 className="titre">TriPhoto</h1>
-        <p className="accroche">Trier ses photos et vidéos OneDrive d'un simple geste.</p>
       </header>
 
       <div className="contenu">
@@ -175,11 +165,6 @@ export default function EcranAccueil() {
               Commencer le tri
             </button>
             <p className="note">{decrireAvancement(configuration)}</p>
-            {estConfigurationVide(configuration) ? null : (
-              <button type="button" className="action action--discrete" onClick={toutEffacer}>
-                Effacer la configuration
-              </button>
-            )}
           </>
         ) : null}
         <CompteMicrosoft />

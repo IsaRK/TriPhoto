@@ -173,16 +173,6 @@ describe('écran de configuration', () => {
     expect(configurationEnregistree().source).toEqual(dossier('photos', 'Photos'))
   })
 
-  it('efface toute la configuration', async () => {
-    enregistrer({ source: dossier('photos', 'Photos'), bas: dossier('vacances', 'Vacances') })
-    afficher()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Effacer la configuration' }))
-
-    expect(window.localStorage.getItem(CLE)).toBeNull()
-    expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeDisabled()
-  })
-
   it('prévient quand le navigateur refuse d’enregistrer', async () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('stockage refusé')

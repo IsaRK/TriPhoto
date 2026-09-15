@@ -92,15 +92,6 @@ export function ecrireConfiguration(configuration: Configuration): boolean {
   }
 }
 
-export function effacerConfiguration(): void {
-  try {
-    window.localStorage.removeItem(CLE_STOCKAGE)
-  } catch {
-    // Rien à signaler : l'utilisateur voulait justement se débarrasser de ces
-    // choix, et ils ont bien disparu de l'écran.
-  }
-}
-
 export function definirDossier(
   configuration: Configuration,
   emplacement: Emplacement,
@@ -147,10 +138,6 @@ export function compterDestinations(configuration: Configuration): number {
   return [configuration.gauche, configuration.droite, configuration.haut, configuration.bas].filter(
     (dossier) => dossier !== null,
   ).length
-}
-
-export function estConfigurationVide(configuration: Configuration): boolean {
-  return EMPLACEMENTS.every((emplacement) => configuration[emplacement] === null)
 }
 
 function lireTexteStocke(): string | null {
