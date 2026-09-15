@@ -12,7 +12,11 @@ import type { AccountInfo, Configuration, IPublicClientApplication } from '@azur
  * dans un onglet séparé que l'utilisateur doit refermer à la main.
  */
 
-export const SCOPES = ['User.Read', 'Files.ReadWrite']
+/**
+ * `Files.ReadWrite` couvre notre propre OneDrive. `Files.ReadWrite.All` l'élargit
+ * aux dossiers partagés par d'autres personnes, qui vivent dans leur drive à eux.
+ */
+export const SCOPES = ['User.Read', 'Files.ReadWrite', 'Files.ReadWrite.All']
 
 export const MESSAGE_CLIENT_ID_MANQUANT =
   "La variable VITE_MSAL_CLIENT_ID n'est pas renseignée. " +

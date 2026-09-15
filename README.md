@@ -71,7 +71,8 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 
 - Connexion et déconnexion avec un compte Microsoft **personnel**
   (authority `https://login.microsoftonline.com/consumers`)
-- Scopes demandés : `User.Read` et `Files.ReadWrite`
+- Scopes demandés : `User.Read`, `Files.ReadWrite` et `Files.ReadWrite.All`
+  (ce dernier est nécessaire aux dossiers partagés, voir la section dédiée)
 - Flux par **redirection** (et non popup), plus fiable sur navigateur mobile
 - Appel Microsoft Graph `GET /me` en REST, qui affiche le nom du compte connecté et
   prouve que le jeton d'accès fonctionne
@@ -86,9 +87,12 @@ Le choix des dossiers OneDrive et les gestes de swipe restent à venir.
 ### Contenu du Lot 2
 
 - Lecture des dossiers OneDrive en REST brut (`src/graph/dossiers.ts`) :
-  `GET /me/drive/root/children` et `GET /me/drive/items/{id}/children`, avec
-  `$select` explicite et suivi de la pagination (`@odata.nextLink`)
+  `GET /me/drive?$select=id` (une seule fois, pour reconnaître notre propre drive),
+  `GET /me/drive/root/children` puis `GET /drives/{driveId}/items/{id}/children`,
+  avec `$select` explicite et suivi de la pagination (`@odata.nextLink`)
 - Seuls les dossiers sont retenus ; les fichiers sont ignorés à ce stade
+- Les raccourcis vers des **dossiers partagés** sont suivis jusqu'au drive
+  d'origine (voir ci-dessous)
 - Explorateur navigable (`src/config/ExplorateurDossiers.tsx`) : fil d'Ariane pour
   remonter, états chargement / dossier vide / erreur avec « Réessayer »
 - Une fois connecté, l'écran d'accueil permet de parcourir son OneDrive et
@@ -100,26 +104,65 @@ La racine du OneDrive ne peut pas être choisie comme dossier : il faut ouvrir u
 dossier. L'attribution des dossiers aux directions de swipe et la sauvegarde de la
 configuration arrivent au lot suivant.
 
+## Les dossiers partagés
+
+Cas visé : **la source est chez vous, les destinations sont des dossiers partagés**
+par d'autres personnes (un album de famille, par exemple).
+
+### Comment les rendre visibles
+
+Un dossier partagé avec vous n'est pas dans votre OneDrive : il vit dans le drive
+de la personne qui partage. Pour que TriPhoto le voie, ouvrez
+[onedrive.live.com](https://onedrive.live.com) → **Partagés** → clic droit sur le
+dossier → **Ajouter à mon OneDrive**. OneDrive crée alors un **raccourci** dans vos
+fichiers.
+
+TriPhoto suit ces raccourcis : ils apparaissent dans l'explorateur avec la mention
+« partagé », et on navigue dedans comme dans n'importe quel dossier. Chaque dossier
+transporte donc son `driveId`, celui de son propriétaire.
+
+Cette approche a été préférée à `GET /me/drive/sharedWithMe`, qui listerait
+directement les partages mais que Microsoft a **déprécié** : l'API cesse de
+renvoyer des données en novembre 2026, sans remplacement annoncé pour les comptes
+personnels. Les raccourcis, eux, sont de simples éléments de votre drive et ne
+dépendent d'aucune API en sursis.
+
+### Conséquence sur le tri : une copie, pas un déplacement
+
+Microsoft Graph refuse de déplacer un fichier d'un drive vers un autre :
+*« Items cannot be moved between Drives using this request »*. Le
+`PATCH parentReference` utilisé pour un tri ordinaire ne franchit pas cette
+frontière.
+
+Quand la destination est dans un autre drive, TriPhoto procédera donc en deux
+temps (Lot 5) :
+
+1. `POST /drives/{driveId}/items/{id}/copy` vers le dossier de destination —
+   l'opération est asynchrone, Graph renvoie un `202` et une URL à interroger
+   jusqu'à la fin de la copie ;
+2. l'original, qui est chez vous, est **déplacé vers votre dossier Poubelle** — et
+   non supprimé.
+
+Le principe « on ne supprime jamais rien » est préservé côté source : le fichier
+d'origine reste chez vous, dans la Poubelle, et l'annulation le remet dans le
+dossier source.
+
+En revanche, **l'annulation ne défait pas la copie** : celle-ci reste dans l'album
+de son propriétaire. L'enlever supposerait de supprimer un fichier chez quelqu'un
+d'autre, ce que TriPhoto ne fera pas. Une annulation après un tri vers un dossier
+partagé laisse donc un doublon à nettoyer à la main. Le prix à payer est aussi la
+lenteur : une copie est bien plus longue qu'un déplacement.
+
+Ce mécanisme impose le scope `Files.ReadWrite.All` en plus de `Files.ReadWrite`,
+pour pouvoir écrire dans le drive de quelqu'un d'autre. Au prochain lancement,
+Microsoft redemandera donc votre consentement.
+
 ## Limitations connues
 
-### Les dossiers partagés ne sont pas accessibles
-
-TriPhoto ne parcourt que **votre propre OneDrive**. Les dossiers que d'autres
-personnes ont partagés avec vous (« Partagés avec moi ») ne sont pas proposés.
-
-Ce n'est pas la lecture qui pose problème — `GET /me/drive/sharedWithMe` la
-permettrait — mais le tri lui-même. Microsoft Graph refuse de déplacer un fichier
-d'un OneDrive vers un autre : *« Items cannot be moved between Drives using this
-request »*. Il faudrait alors copier le média puis supprimer l'original, ce qui
-contredit deux principes du produit : déplacer plutôt que copier, et ne jamais
-supprimer réellement un fichier. Qui plus est, la suppression porterait sur le
-fichier de quelqu'un d'autre, et l'annulation deviendrait beaucoup plus fragile.
-
-À noter enfin que `sharedWithMe` est annoncé comme déprécié pour les comptes
-Microsoft personnels.
-
-Un cas fonctionnerait proprement : une source et des destinations toutes situées
-dans un **même** drive partagé, puisque le déplacement resterait interne à ce
-drive. Cela demanderait de transporter un `driveId` dans toute la configuration et
-d'élargir les permissions à `Files.ReadWrite.All`. La complexité n'a pas paru
-justifiée pour un usage qui reste marginal ; à rouvrir si le besoin se confirme.
+- Un dossier partagé n'est visible qu'après un « Ajouter à mon OneDrive » ; il n'y
+  a pas de découverte automatique des partages, faute d'API pérenne.
+- Écrire dans un dossier partagé suppose que son propriétaire vous a donné le droit
+  de **modification**, pas seulement de lecture.
+- Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse
+  la copie chez son propriétaire.
+- La racine du OneDrive n'est pas choisissable : il faut ouvrir un dossier.

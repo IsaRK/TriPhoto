@@ -6,6 +6,7 @@ import { listerDossiersRacine, listerSousDossiers } from '../graph/dossiers'
 
 export type DossierChoisi = {
   id: string
+  driveId: string
   nom: string
   chemin: string
 }
@@ -13,6 +14,7 @@ export type DossierChoisi = {
 /** Une étape du fil d'Ariane. `id` vaut `null` pour la racine du OneDrive. */
 type EtapeChemin = {
   id: string | null
+  driveId: string | null
   nom: string
 }
 
@@ -22,7 +24,7 @@ type EtatListe =
   | { statut: 'sessionExpiree' }
   | { statut: 'erreur'; message: string }
 
-const RACINE: EtapeChemin = { id: null, nom: 'OneDrive' }
+const RACINE: EtapeChemin = { id: null, driveId: null, nom: 'OneDrive' }
 
 /**
  * Explorateur de dossiers OneDrive : on descend dans l'arborescence, on remonte
@@ -45,6 +47,7 @@ export default function ExplorateurDossiers({
 
   const dossierCourant = chemin[chemin.length - 1]
   const idCourant = dossierCourant.id
+  const driveCourant = dossierCourant.driveId
 
   useEffect(() => {
     if (!compte) {
@@ -57,7 +60,9 @@ export default function ExplorateurDossiers({
 
     recupererJetonAcces(instance, compte)
       .then((jeton) =>
-        idCourant === null ? listerDossiersRacine(jeton) : listerSousDossiers(jeton, idCourant),
+        idCourant === null || driveCourant === null
+          ? listerDossiersRacine(jeton)
+          : listerSousDossiers(jeton, driveCourant, idCourant),
       )
       .then((dossiers) => {
         if (!annule) {
@@ -78,10 +83,10 @@ export default function ExplorateurDossiers({
     return () => {
       annule = true
     }
-  }, [instance, idCompte, idCourant, tentative])
+  }, [instance, idCompte, idCourant, driveCourant, tentative])
 
   const ouvrir = (dossier: DossierOneDrive) =>
-    setChemin([...chemin, { id: dossier.id, nom: dossier.nom }])
+    setChemin([...chemin, { id: dossier.id, driveId: dossier.driveId, nom: dossier.nom }])
 
   const remonter = (index: number) => setChemin(chemin.slice(0, index + 1))
 
@@ -91,11 +96,12 @@ export default function ExplorateurDossiers({
       .catch((erreur: unknown) => setEtat({ statut: 'erreur', message: decrireErreur(erreur) }))
 
   const choisir = () => {
-    if (idCourant === null) {
+    if (idCourant === null || driveCourant === null) {
       return
     }
     onChoisir({
       id: idCourant,
+      driveId: driveCourant,
       nom: dossierCourant.nom,
       chemin: chemin.map((etape) => etape.nom).join(' / '),
     })
@@ -127,7 +133,9 @@ export default function ExplorateurDossiers({
 
       {etat.statut === 'sessionExpiree' ? (
         <div className="pile">
-          <p className="note">Votre session Microsoft a expiré.</p>
+          <p className="note">
+            Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation.
+          </p>
           <button type="button" className="action action--discrete" onClick={reconnecter}>
             Se reconnecter
           </button>
@@ -154,10 +162,13 @@ export default function ExplorateurDossiers({
       {etat.statut === 'prete' && etat.dossiers.length > 0 ? (
         <ul className="liste-dossiers">
           {etat.dossiers.map((dossier) => (
-            <li key={dossier.id}>
+            <li key={`${dossier.driveId}:${dossier.id}`}>
               <button type="button" className="dossier" onClick={() => ouvrir(dossier)}>
                 <span className="dossier__nom">{dossier.nom}</span>
-                <span className="dossier__compte">{decrireContenu(dossier.nombreEnfants)}</span>
+                <span className="dossier__compte">
+                  {dossier.partage ? 'partagé · ' : ''}
+                  {decrireContenu(dossier.nombreEnfants)}
+                </span>
               </button>
             </li>
           ))}
@@ -169,7 +180,10 @@ export default function ExplorateurDossiers({
       </button>
 
       {idCourant === null ? (
-        <p className="note">Ouvrez un dossier pour pouvoir le choisir.</p>
+        <p className="note">
+          Ouvrez un dossier pour pouvoir le choisir. Un dossier partagé par quelqu'un d'autre
+          n'apparaît ici qu'après un « Ajouter à mon OneDrive » depuis onedrive.live.com.
+        </p>
       ) : null}
     </section>
   )
