@@ -111,11 +111,22 @@ par d'autres personnes (un album de famille, par exemple).
 
 ### Comment les rendre visibles
 
-Un dossier partagé avec vous n'est pas dans votre OneDrive : il vit dans le drive
-de la personne qui partage. Pour que TriPhoto le voie, ouvrez
-[onedrive.live.com](https://onedrive.live.com) → **Partagés** → clic droit sur le
-dossier → **Ajouter à mon OneDrive**. OneDrive crée alors un **raccourci** dans vos
-fichiers.
+D'abord, une distinction qui évite une manipulation inutile :
+
+- **Un dossier que vous possédez et que vous partagez avec d'autres** est dans
+  votre OneDrive. Il apparaît déjà dans TriPhoto, il n'y a rien à faire.
+- **Un dossier que quelqu'un d'autre partage avec vous** vit dans *son* OneDrive.
+  C'est celui-là qui demande l'étape ci-dessous.
+
+Sur [onedrive.live.com](https://onedrive.live.com), dans le menu de gauche :
+**Partagé** → **Partagé avec vous**. Sélectionnez le dossier, puis
+**Ajouter un raccourci à Mes fichiers** — soit par le bouton de la barre du haut,
+soit par un clic droit. Le dossier doit être partagé avec le droit
+« Peut modifier » ; en lecture seule, l'option n'apparaît pas et TriPhoto ne
+pourrait de toute façon rien y déposer.
+
+OneDrive crée alors un **raccourci** dans vos fichiers. (L'ancien libellé
+« Ajouter à mon OneDrive » désigne la même chose.)
 
 TriPhoto suit ces raccourcis : ils apparaissent dans l'explorateur avec la mention
 « partagé », et on navigue dedans comme dans n'importe quel dossier. Chaque dossier
@@ -159,8 +170,9 @@ Microsoft redemandera donc votre consentement.
 
 ## Limitations connues
 
-- Un dossier partagé n'est visible qu'après un « Ajouter à mon OneDrive » ; il n'y
-  a pas de découverte automatique des partages, faute d'API pérenne.
+- Un dossier partagé par quelqu'un d'autre n'est visible qu'après un « Ajouter un
+  raccourci à Mes fichiers » ; il n'y a pas de découverte automatique des partages,
+  faute d'API pérenne.
 - Écrire dans un dossier partagé suppose que son propriétaire vous a donné le droit
   de **modification**, pas seulement de lecture.
 - Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse

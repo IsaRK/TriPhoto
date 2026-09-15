@@ -182,7 +182,8 @@ export default function ExplorateurDossiers({
       {idCourant === null ? (
         <p className="note">
           Ouvrez un dossier pour pouvoir le choisir. Un dossier partagé par quelqu'un d'autre
-          n'apparaît ici qu'après un « Ajouter à mon OneDrive » depuis onedrive.live.com.
+          n'apparaît ici qu'après un « Ajouter un raccourci à Mes fichiers » depuis
+          onedrive.live.com.
         </p>
       ) : null}
     </section>
