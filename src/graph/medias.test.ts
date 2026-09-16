@@ -143,6 +143,23 @@ describe('lecture des médias d’un dossier', () => {
     expect(medias.map((media) => media.id)).toEqual(['a', 'b'])
   })
 
+  it('refuse de suivre une page suivante hors de Microsoft Graph', async () => {
+    // L'adresse de page suivante est lue dans une réponse JSON. Si elle pointait
+    // ailleurs, le jeton d'accès partirait vers un autre domaine : on s'arrête.
+    const fetchSimule = simulerAppels(
+      reponse({
+        value: [photo('a', '2024-03-01T00:00:00Z')],
+        '@odata.nextLink': 'https://exemple-malveillant.test/v1.0/page-2',
+      }),
+      reponse({ value: [photo('b', '2024-04-01T00:00:00Z')] }),
+    )
+
+    await expect(listerMedias('jeton', 'mon-drive', 'dossier-1')).rejects.toThrow(
+      'unexpected address',
+    )
+    expect(fetchSimule).toHaveBeenCalledTimes(1)
+  })
+
   it('trie par date de prise de vue croissante, la plus ancienne d’abord', async () => {
     simulerAppels(
       reponse({
