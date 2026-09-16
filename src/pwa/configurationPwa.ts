@@ -48,18 +48,27 @@ export const MANIFESTE: Partial<ManifestOptions> = {
  *    garder afficherait des photos déjà déplacées, et laisserait des données
  *    privées dans le stockage du navigateur.
  *
- * 2. **Une mise à jour ne prend jamais la main sur un tri en cours.** Le mode
- *    « autoUpdate » a été écarté : il force `skipWaiting`, c'est-à-dire qu'une
- *    version publiée pendant que l'application est ouverte remplacerait les
- *    fichiers sous les pieds de la page. Avec le mode par défaut, la nouvelle
- *    version s'installe en arrière-plan et n'est activée qu'une fois l'application
- *    fermée : un tri en cours, et donc la pile d'annulation, survit à un
- *    déploiement.
+ * 2. **Une nouvelle version publiée doit finir par arriver sur le téléphone.**
+ *    C'est le rôle du mode « autoUpdate », qui pose `skipWaiting` et
+ *    `clientsClaim` : le service worker fraîchement téléchargé s'active tout de
+ *    suite au lieu d'attendre.
+ *
+ *    Le mode par défaut (« prompt ») a été essayé d'abord, en pensant qu'une
+ *    version installée en arrière-plan s'activerait à la fermeture de
+ *    l'application. C'était une erreur : une PWA posée sur l'écran d'accueil
+ *    n'est pratiquement jamais fermée — elle reste dans les tâches récentes du
+ *    téléphone — et le service worker en attente n'était donc jamais activé. On
+ *    trie alors indéfiniment avec l'ancienne version, sans rien pour le
+ *    signaler.
+ *
+ *    Ce que « autoUpdate » ne fait pas ici, c'est recharger la page : TriPhoto
+ *    n'appelle pas le `registerSW` du plugin, qui s'en chargerait. Les fichiers
+ *    déjà chargés continuent donc de tourner jusqu'à la fin du tri en cours, et
+ *    la nouvelle version prend la main au lancement suivant. La pile
+ *    d'annulation survit à un déploiement, ce qui était le vrai besoin.
  */
 export const OPTIONS_PWA: Partial<VitePWAOptions> = {
-  // TriPhoto ne propose pas pour autant de bouton « mettre à jour » : il n'y a
-  // rien à demander à l'utilisatrice, la version suivante se lancera d'elle-même.
-  registerType: 'prompt',
+  registerType: 'autoUpdate',
   // L'enregistrement est écrit à la main dans serviceWorker.ts, pour qu'il reste
   // lisible et testable plutôt que caché dans un script injecté dans la page.
   injectRegister: null,

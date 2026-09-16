@@ -55,10 +55,11 @@ describe('garde-fous de la configuration du service worker', () => {
     expect(OPTIONS_PWA.workbox?.runtimeCaching).toBeUndefined()
   })
 
-  it('n’active pas la nouvelle version par-dessus un tri en cours', () => {
-    // « autoUpdate » force skipWaiting : une publication pendant que
-    // l'application est ouverte remplacerait les fichiers sous les pieds de la page.
-    expect(OPTIONS_PWA.registerType).not.toBe('autoUpdate')
+  it('active la nouvelle version sans attendre la fermeture de l’application', () => {
+    // Le mode « prompt » laissait le service worker en attente tant qu'un onglet
+    // restait ouvert. Une PWA installée n'étant jamais vraiment fermée, la mise à
+    // jour n'arrivait jamais sur le téléphone.
+    expect(OPTIONS_PWA.registerType).toBe('autoUpdate')
   })
 
   it('sert la page de l’application pour une adresse inconnue, même hors ligne', () => {
