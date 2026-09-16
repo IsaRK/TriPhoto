@@ -1,0 +1,55 @@
+# Publie TriPhoto sur Azure Static Web Apps à chaque changement de `main`.
+#
+# Le déploiement n'a lieu que sur `main`, et volontairement pas sur les pull
+# requests : Azure fabriquerait une URL de préversion différente à chaque fois,
+# or chaque URL doit être déclarée une par une dans l'app registration Entra.
+# Une préversion serait donc une application sur laquelle il est impossible de
+# se connecter, ce qui induirait plus en erreur qu'autre chose.
+name: Déploiement
+
+on:
+  push:
+    branches: [main]
+  # Permet aussi de relancer un déploiement à la main depuis l'onglet Actions.
+  workflow_dispatch:
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier les types et les tests
+        run: |
+          npm run typecheck
+          npm run test
+
+      # Le Client ID n'est pas un secret : il voyage en clair dans chaque URL de
+      # connexion Microsoft. Il est donc rangé dans les « Variables » du dépôt et
+      # non dans les « Secrets », pour ne pas laisser croire qu'il protège
+      # quelque chose. Ce qui protège le compte, c'est la connexion Microsoft
+      # elle-même et la liste des URI de redirection autorisées.
+      - name: Construire l'application
+        run: npm run build
+        env:
+          VITE_MSAL_CLIENT_ID: ${{ vars.VITE_MSAL_CLIENT_ID }}
+
+      # `skip_app_build` : on a déjà construit nous-mêmes juste au-dessus, avec
+      # notre version de Node et nos tests. Sans cela, Azure reconstruirait de
+      # son côté, sans la variable ci-dessus.
+      - name: Publier sur Azure
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: dist
+          skip_app_build: true
+          skip_api_build: true

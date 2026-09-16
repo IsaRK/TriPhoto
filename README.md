@@ -96,6 +96,63 @@ C'est aussi pour cela que la plateforme doit être « SPA » et non « Web ».
 Lors du déploiement, ajouter l'URL de production dans la même section
 **Authentication → Single-page application** de l'app registration.
 
+## Mettre l'application en ligne
+
+Tant que l'application n'est pas hébergée, elle n'existe que pendant que
+`npm run dev:mobile` tourne, sur le même Wi-Fi, avec un avertissement de certificat
+et une adresse IP qui change. Pour s'en servir vraiment, il faut la publier.
+
+Ce sera forcément une adresse en **`https://`**, jamais en `http://` : Entra refuse une
+URI de redirection en clair ailleurs que sur `localhost`, et une PWA installable exige un
+service worker, qui n'existe qu'en contexte sécurisé. Sans HTTPS, pas de « Ajouter à
+l'écran d'accueil ».
+
+**Publier TriPhoto ne divulgue rien.** Il n'y a pas de backend, pas de secret — le Client
+ID voyage de toute façon en clair dans chaque URL de connexion Microsoft — et surtout
+**les photos ne transitent jamais par l'hébergeur** : le navigateur parle directement à
+Microsoft Graph. Quelqu'un qui tomberait sur l'adresse verrait l'écran de connexion et
+trierait son propre OneDrive, pas le vôtre.
+
+### Pourquoi Azure Static Web Apps
+
+Le dépôt est **privé**, ce qui écarte GitHub Pages (qui demanderait un abonnement payant
+ou de rendre le code public). Parmi les hébergeurs gratuits restants, Azure Static Web
+Apps a deux avantages ici : c'est le même compte Microsoft que celui qui sert déjà pour
+l'app registration Entra, et le plan gratuit accepte les dépôts privés.
+
+L'application utilise `BrowserRouter`, donc l'adresse `/tri` est une vraie URL. Un
+hébergeur statique naïf répondrait 404 si l'on rechargeait la page à cet endroit. C'est le
+rôle de `public/staticwebapp.config.json` : il demande à Azure de renvoyer `index.html`
+pour toute URL qui ne correspond pas à un fichier, à charge pour React Router de faire le
+reste. Le fichier est dans `public/` et non à la racine parce que Vite recopie ce dossier
+tel quel dans `dist/`, où Azure va le chercher.
+
+### La marche à suivre
+
+1. Sur [portal.azure.com](https://portal.azure.com), chercher **Static Web Apps**, puis
+   **Create**.
+2. **Plan type** : **Free**. **Source de déploiement** : choisir **Other**, et surtout
+   pas « GitHub ». Si l'on choisit GitHub, Azure écrit lui-même un second fichier de
+   workflow, qui fera doublon avec `.github/workflows/deploiement.yml`.
+3. Une fois la ressource créée, ouvrir **Overview → Manage deployment token** et copier
+   le jeton.
+4. Sur GitHub, dans **Settings → Secrets and variables → Actions** du dépôt :
+   - onglet **Secrets**, bouton **New repository secret** :
+     nom `AZURE_STATIC_WEB_APPS_API_TOKEN`, valeur = le jeton copié ;
+   - onglet **Variables**, bouton **New repository variable** :
+     nom `VITE_MSAL_CLIENT_ID`, valeur = le Client ID de l'app registration.
+     C'est une variable et non un secret, parce que ce n'est pas un secret.
+5. Azure attribue une adresse du genre `https://joli-nom-1234.azurestaticapps.net`.
+   L'ajouter dans l'app registration Entra, sous **Authentication → Single-page
+   application → Add URI**, sans barre oblique finale.
+6. Pousser sur `main` : le workflow vérifie les types, lance les tests, construit
+   l'application et la publie. L'onglet **Actions** du dépôt montre le déroulement.
+
+Le déploiement n'a volontairement **pas** lieu sur les pull requests. Azure fabriquerait
+une URL de préversion différente à chaque fois, et chacune devrait être déclarée une par
+une dans Entra : la préversion serait donc une application sur laquelle il est impossible
+de se connecter, ce qui induirait plus en erreur qu'autre chose.
+
 ## État d'avancement
 
 | Lot | Périmètre | Statut |
@@ -107,6 +164,7 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 | Lot 4 | Listage des médias du dossier à trier (couche Graph) | ✅ Terminé |
 | Lot 5 | Écran de tri en lecture seule : affichage des médias un par un | ✅ Terminé |
 | Lot 6 | Gestes de swipe au doigt, raccourcis clavier, overlay de destination | ✅ Terminé |
+| Lot 7 | Mise en ligne : Azure Static Web Apps, workflow GitHub Actions | ✅ Terminé |
 | Lots suivants | PWA (manifest, service worker), README complet | ⏳ À venir |
 
 ### Contenu du Lot 0
@@ -299,6 +357,21 @@ dossier où elle doit aller, et elle y va.
   navigateur ni doigt, et c'est là que se trouvent les règles de seuil et d'axe dominant.
 - Pendant qu'un déplacement est en cours, un nouveau geste est ignoré : sans cela, deux
   `PATCH` partiraient pour le même fichier.
+
+### Contenu du Lot 7
+
+La mise en ligne, décrite en détail dans « Mettre l'application en ligne » plus haut.
+
+- `.github/workflows/deploiement.yml` : à chaque poussée sur `main`, les types sont
+  vérifiés, les tests lancés, l'application construite puis publiée. Un échec de test
+  empêche la publication.
+- `public/staticwebapp.config.json` : renvoie `index.html` pour toute URL inconnue, sans
+  quoi recharger la page sur `/tri` donnerait une 404.
+- Le Client ID passe par une **variable** de dépôt et non par un secret : il circule en
+  clair dans chaque URL de connexion Microsoft, le ranger parmi les secrets laisserait
+  croire qu'il protège quelque chose.
+- Pas de déploiement de préversion sur les pull requests : leurs URL changent à chaque
+  fois et ne peuvent pas être déclarées dans Entra.
 
 ### Titres courts et formes directionnelles
 
