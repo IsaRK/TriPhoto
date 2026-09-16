@@ -39,7 +39,11 @@ function enregistrer(champs: Partial<Configuration>) {
 }
 
 function configurationComplete() {
-  enregistrer({ source: dossier('Pellicule'), gauche: dossier('Vacances', 'Vacances') })
+  enregistrer({
+    source: dossier('Pellicule'),
+    poubelle: dossier('Corbeille'),
+    gauche: dossier('Vacances', 'Vacances'),
+  })
 }
 
 function elementGraph(champs: Record<string, unknown>) {
@@ -178,7 +182,7 @@ describe('affichage des médias', () => {
     afficher()
     await screen.findByAltText('premiere.jpg')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Passer' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Passer ce média' }))
 
     expect(await screen.findByAltText('seconde.jpg')).toBeInTheDocument()
     expect(progression()).toBe('2 / 2')
@@ -257,6 +261,7 @@ describe('affichage des médias', () => {
   it('rappelle le titre court de chaque destination configurée', async () => {
     enregistrer({
       source: dossier('Pellicule'),
+      poubelle: dossier('Corbeille'),
       gauche: dossier('Vacances', 'Vacances'),
       haut: dossier('Famille', 'Famille'),
     })
@@ -264,9 +269,21 @@ describe('affichage des médias', () => {
     afficher()
     await screen.findByAltText('photo.jpg')
 
-    const titres = [...document.querySelectorAll('.legende__titre')].map((n) => n.textContent)
+    const titres = [...document.querySelectorAll('.tri__bord')].map((n) => n.textContent)
 
     expect(titres).toEqual(['Vacances', 'Famille'])
+  })
+
+  it('propose les quatre boutons des coins', async () => {
+    configurationComplete()
+    vi.stubGlobal('fetch', simulerGraph([elementGraph({ id: 'a' })]))
+    afficher()
+    await screen.findByAltText('photo.jpg')
+
+    expect(screen.getByRole('link', { name: "Retour à l'accueil" })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Passer ce média' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Envoyer à la poubelle' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Annuler le dernier déplacement' })).toBeDisabled()
   })
 })
 
@@ -296,7 +313,7 @@ describe('fin et cas limites', () => {
     afficher()
     await screen.findByAltText('photo.jpg')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Passer' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Passer ce média' }))
 
     expect(await screen.findByText('Tri terminé')).toBeInTheDocument()
     expect(screen.getByText('1 média passé en revue.')).toBeInTheDocument()
@@ -307,7 +324,7 @@ describe('fin et cas limites', () => {
     vi.stubGlobal('fetch', simulerGraph([elementGraph({ id: 'a' })]))
     afficher()
     await screen.findByAltText('photo.jpg')
-    await userEvent.click(screen.getByRole('button', { name: 'Passer' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Passer ce média' }))
 
     await userEvent.click(await screen.findByRole('button', { name: 'Tout revoir' }))
 

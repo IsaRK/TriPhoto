@@ -57,6 +57,7 @@ export default function EcranAccueil() {
   const [configuration, setConfiguration] = useState<Configuration>(lireConfiguration)
   const [emplacementEnCours, setEmplacementEnCours] = useState<Emplacement | null>(null)
   const [avertissement, setAvertissement] = useState<string | null>(null)
+  const manque = decrireCeQuiManque(configuration)
 
   const enregistrer = (nouvelle: Configuration) => {
     setConfiguration(nouvelle)
@@ -186,7 +187,7 @@ export default function EcranAccueil() {
             >
               Commencer le tri
             </button>
-            <p className="note">{decrireAvancement(configuration)}</p>
+            {manque === null ? null : <p className="note">{manque}</p>}
           </>
         ) : null}
         <CompteMicrosoft />
@@ -264,16 +265,19 @@ function libelleDe(emplacement: Emplacement): string {
   return ligne === undefined ? emplacement : ligne.libelle
 }
 
-function decrireAvancement(configuration: Configuration): string {
-  const destinations = compterDestinations(configuration)
-  if (destinations === 0) {
-    return 'Choisissez au moins une destination.'
-  }
-  // Sans cette ligne, « Commencer le tri » resterait grisé sans rien expliquer.
+/**
+ * Ce qui manque encore pour lancer le tri, ou `null` quand tout est prêt : sans
+ * ce message, « Commencer le tri » resterait grisé sans rien expliquer.
+ */
+function decrireCeQuiManque(configuration: Configuration): string | null {
   if (configuration.source === null) {
     return 'Il manque le dossier à trier.'
   }
-  const accord = destinations === 1 ? 'destination choisie' : 'destinations choisies'
-  const poubelle = configuration.poubelle === null ? ' La poubelle reste à choisir.' : ''
-  return `${destinations} ${accord} sur 4.${poubelle}`
+  if (compterDestinations(configuration) === 0) {
+    return 'Choisissez au moins une destination.'
+  }
+  if (configuration.poubelle === null) {
+    return 'Il manque le dossier Poubelle.'
+  }
+  return null
 }

@@ -364,25 +364,21 @@ button {
  * la liste : une seule règle par direction, pour qu'elles ne divergent pas.
  */
 .emplacement__pastille--gauche,
-.legende__pastille--gauche,
 .direction--gauche .direction__pastille {
   clip-path: polygon(0% 50%, 45% 0%, 100% 0%, 100% 100%, 45% 100%);
 }
 
 .emplacement__pastille--droite,
-.legende__pastille--droite,
 .direction--droite .direction__pastille {
   clip-path: polygon(100% 50%, 55% 100%, 0% 100%, 0% 0%, 55% 0%);
 }
 
 .emplacement__pastille--haut,
-.legende__pastille--haut,
 .direction--haut .direction__pastille {
   clip-path: polygon(50% 0%, 100% 45%, 100% 100%, 0% 100%, 0% 45%);
 }
 
 .emplacement__pastille--bas,
-.legende__pastille--bas,
 .direction--bas .direction__pastille {
   clip-path: polygon(50% 100%, 0% 55%, 0% 0%, 100% 0%, 100% 55%);
 }
@@ -434,65 +430,32 @@ button {
 
 /* --------------------------- Écran de tri ------------------------ */
 
-/* Le tri occupe tout l'écran : aucun défilement, la carte s'adapte à la place. */
-.ecran--tri {
+/* Le média occupe tout l'écran ; boutons et informations sont posés par-dessus.
+   Le fond sombre sert de passe-partout : une photo verticale ne remplit jamais
+   un écran de téléphone, et un fond clair ferait baver ses bords. */
+.tri {
+  position: relative;
   overflow: hidden;
-  gap: 16px;
+  height: 100dvh;
+  background: #1f2430;
 }
 
-.barre-tri {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.barre-tri__retour {
-  display: flex;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  margin-left: -12px;
-  color: var(--texte);
-  font-size: 1.6rem;
-  line-height: 1;
-  text-decoration: none;
-}
-
-.barre-tri__progression {
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.barre-tri__date {
-  overflow: hidden;
-  margin-left: auto;
-  color: var(--texte-doux);
-  font-size: 0.85rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.carte {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-}
-
-/* `contain` et non `cover` : on montre la photo entière, sans rogner un visage.
-   `min-width/min-height: 0` sont indispensables : par défaut un élément flex
-   refuse de descendre sous la taille intrinsèque du média, et une photo de
-   4000 px déborderait de l'écran au lieu d'être réduite. */
-.carte__media {
-  max-width: 100%;
-  max-height: 100%;
-  min-width: 0;
-  min-height: 0;
-  border-radius: 16px;
+/* `contain` et non `cover` : on montre la photo entière. Rogner ferait décider
+   sur un cadrage que le fichier n'a pas. */
+.tri__media {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+}
+
+.tri__sans-media {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32px;
+  color: #ffffff;
+  text-align: center;
 }
 
 /* Le média suivant est chargé mais jamais montré. */
@@ -504,31 +467,132 @@ button {
   pointer-events: none;
 }
 
-.legende {
+/* Les infos passent sous la pastille « haut », qui occupe le centre du bord. */
+.tri__infos {
+  position: absolute;
+  top: calc(var(--marge-haut) + 76px);
+  left: 50%;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 16px;
-  list-style: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #ffffff;
+  text-align: center;
+  transform: translateX(-50%);
 }
 
-.legende__element {
+.tri__progression {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.tri__date {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+/* --- Les quatre boutons des coins --- */
+
+.tri__coin {
+  position: absolute;
+  display: flex;
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--texte);
+  font-size: 1.5rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.tri__coin:disabled {
+  opacity: 0.35;
+}
+
+.tri__coin--retour {
+  top: calc(var(--marge-haut) + 12px);
+  left: calc(var(--marge-gauche) + 12px);
+}
+
+.tri__coin--annuler {
+  top: calc(var(--marge-haut) + 12px);
+  right: calc(var(--marge-droite) + 12px);
+}
+
+.tri__coin--poubelle {
+  bottom: calc(var(--marge-bas) + 12px);
+  left: calc(var(--marge-gauche) + 12px);
+  font-size: 1.25rem;
+}
+
+.tri__coin--passer {
+  right: calc(var(--marge-droite) + 12px);
+  bottom: calc(var(--marge-bas) + 12px);
+}
+
+/* --- Les quatre destinations, au milieu de chaque bord --- */
+
+.tri__bord {
+  position: absolute;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.legende__pastille {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.legende__titre {
-  overflow: hidden;
-  max-width: 12ch;
-  color: var(--texte-doux);
+  justify-content: center;
+  padding: 0 10px;
+  border: 0;
+  color: #ffffff;
   font-size: 0.8rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Un bouton désactivé reste à pleine couleur : ces pastilles portent l'identité
+   du produit, les estomper viderait l'écran de ses repères. */
+.tri__bord:disabled {
+  opacity: 1;
+}
+
+/* La pointe mange 22 % de la longueur du bouton, assez pour lire la direction
+   sans rogner le titre court qui tient au centre. */
+.tri__bord--gauche,
+.tri__bord--droite {
+  top: 50%;
+  width: 84px;
+  height: 56px;
+  transform: translateY(-50%);
+}
+
+.tri__bord--gauche {
+  left: var(--marge-gauche);
+  padding-left: 20px;
+  clip-path: polygon(0% 50%, 22% 0%, 100% 0%, 100% 100%, 22% 100%);
+}
+
+.tri__bord--droite {
+  right: var(--marge-droite);
+  padding-right: 20px;
+  clip-path: polygon(100% 50%, 78% 100%, 0% 100%, 0% 0%, 78% 0%);
+}
+
+.tri__bord--haut,
+.tri__bord--bas {
+  left: 50%;
+  width: 96px;
+  height: 64px;
+  transform: translateX(-50%);
+}
+
+.tri__bord--haut {
+  top: var(--marge-haut);
+  padding-top: 16px;
+  clip-path: polygon(50% 0%, 100% 22%, 100% 100%, 0% 100%, 0% 22%);
+}
+
+.tri__bord--bas {
+  bottom: var(--marge-bas);
+  padding-bottom: 16px;
+  clip-path: polygon(50% 100%, 0% 78%, 0% 0%, 100% 0%, 100% 78%);
 }

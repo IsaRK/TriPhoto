@@ -161,18 +161,27 @@ Les gestes de swipe et les déplacements vers les dossiers de destination sont l
 des deux lots suivants. Ce lot sert surtout à confronter la couche Graph du Lot 4 à un
 vrai OneDrive.
 
-- Les médias du dossier à trier sont affichés **un par un**, du plus ancien au plus
-  récent, avec la progression (`12 / 340`) et la date de prise de vue en toutes lettres
+- Les médias du dossier à trier sont affichés **un par un**, en **plein écran**, du plus
+  ancien au plus récent, avec la progression (`12 / 340`) et la date de prise de vue
+- La photo est affichée entière (jamais rognée) sur un fond sombre : rogner ferait
+  décider sur un cadrage que le fichier n'a pas
+- Les **quatre destinations** sont posées par-dessus, au milieu de chaque bord, avec leur
+  couleur, leur forme directionnelle et leur titre court
+- Les **quatre boutons des coins** : retour à l'accueil (haut gauche), annuler (haut
+  droite), poubelle (bas gauche), passer (bas droite). Ils ne répondent qu'au clic :
+  aucun geste de swipe ne leur est associé.
+- À ce stade, seuls **retour** et **passer** agissent. Poubelle, annuler et les quatre
+  destinations demandent de déplacer des fichiers, ce qui viendra au Lot 7.
+- Le dossier **Poubelle est désormais obligatoire** pour lancer le tri : sans lui, le
+  bouton Supprimer n'aurait nulle part où envoyer les médias
 - Pour une photo, c'est la **miniature** Graph qui est affichée et non le fichier
   d'origine : une photo de téléphone pèse plusieurs mégaoctets, la miniature quelques
-  dizaines de kilooctets. Le fichier complet ne sert que si OneDrive n'a pas produit
+  centaines de kilooctets. Le fichier complet ne sert que si OneDrive n'a pas produit
   de miniature.
 - Pour une vidéo, un lecteur `<video>` avec ses contrôles, sans lecture automatique
 - Le média **suivant** est demandé au navigateur à l'avance, hors de l'écran, pour que
   le passage au suivant soit instantané. Pour une vidéo on ne précharge que les
   métadonnées : télécharger le fichier entier coûterait cher en données mobiles.
-- Un rappel en bas de l'écran associe chaque direction configurée à son titre court
-- Le bouton « Passer » avance sans rien modifier — c'est la seule action possible à ce stade
 - Les erreurs sont distinguées : une session expirée propose de se reconnecter, une
   erreur réseau propose de réessayer
 

@@ -197,9 +197,17 @@ export function emplacementDejaUtilise(
   return null
 }
 
-/** Le tri demande un dossier source et au moins une destination. */
+/**
+ * Le tri demande le dossier à trier, le dossier Poubelle et au moins une
+ * destination : sans poubelle, le bouton Supprimer de l'écran de tri n'aurait
+ * nulle part où envoyer les médias.
+ */
 export function peutCommencerLeTri(configuration: Configuration): boolean {
-  return configuration.source !== null && compterDestinations(configuration) > 0
+  return (
+    configuration.source !== null &&
+    configuration.poubelle !== null &&
+    compterDestinations(configuration) > 0
+  )
 }
 
 export function compterDestinations(configuration: Configuration): number {

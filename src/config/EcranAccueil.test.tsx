@@ -284,6 +284,7 @@ describe('écran de configuration', () => {
 
     await choisirDossierPour('Dossier à trier', 'Photos')
     await choisirDossierPour('Gauche', 'Vacances')
+    await choisirDossierPour('Poubelle', 'Famille')
 
     premierAffichage.unmount()
     afficher()
@@ -293,9 +294,20 @@ describe('écran de configuration', () => {
     expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeEnabled()
   })
 
+  it('laisse « Commencer le tri » grisé tant que la poubelle manque', async () => {
+    afficher()
+
+    await choisirDossierPour('Dossier à trier', 'Photos')
+    await choisirDossierPour('Gauche', 'Vacances')
+
+    expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeDisabled()
+    expect(screen.getByText('Il manque le dossier Poubelle.')).toBeInTheDocument()
+  })
+
   it('relit la configuration enregistrée et mène à l’écran de tri', async () => {
     enregistrer({
       source: dossier('photos', 'Photos'),
+      poubelle: dossier('famille', 'Famille'),
       droite: dossier('vacances', 'Vacances'),
     })
     afficher()

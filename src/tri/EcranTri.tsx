@@ -164,18 +164,8 @@ export default function EcranTri() {
   const destinations = destinationsConfigurees(configuration)
 
   return (
-    <main className="ecran ecran--tri">
-      <header className="barre-tri">
-        <Link className="barre-tri__retour" to="/" aria-label="Retour à la configuration">
-          ‹
-        </Link>
-        <span className="barre-tri__progression">{formaterProgression(index, medias.length)}</span>
-        <span className="barre-tri__date">{formaterDatePriseDeVue(media.priseLe)}</span>
-      </header>
-
-      <div className="carte">
-        <CarteMedia media={media} />
-      </div>
+    <main className="tri">
+      <CarteMedia media={media} />
 
       {/*
         Le média suivant est demandé au navigateur dès maintenant, hors de
@@ -184,22 +174,53 @@ export default function EcranTri() {
       */}
       {suivant ? <PrechargementMedia media={suivant} /> : null}
 
-      <ul className="legende">
-        {destinations.map((destination) => (
-          <li className="legende__element" key={destination.direction}>
-            <span
-              className={`legende__pastille legende__pastille--${destination.direction}`}
-              style={{ backgroundColor: destination.couleur }}
-              aria-hidden="true"
-            />
-            <span className="legende__titre">{destination.titre}</span>
-          </li>
-        ))}
-      </ul>
+      <p className="tri__infos">
+        <span className="tri__progression">{formaterProgression(index, medias.length)}</span>
+        <span className="tri__date">{formaterDatePriseDeVue(media.priseLe)}</span>
+      </p>
 
-      <button type="button" className="action" onClick={() => setIndex(index + 1)}>
-        Passer
+      <Link className="tri__coin tri__coin--retour" to="/" aria-label="Retour à l'accueil">
+        ‹
+      </Link>
+
+      <button
+        type="button"
+        className="tri__coin tri__coin--annuler"
+        disabled
+        aria-label="Annuler le dernier déplacement"
+      >
+        ↺
       </button>
+
+      <button
+        type="button"
+        className="tri__coin tri__coin--poubelle"
+        disabled
+        aria-label="Envoyer à la poubelle"
+      >
+        🗑
+      </button>
+
+      <button
+        type="button"
+        className="tri__coin tri__coin--passer"
+        onClick={() => setIndex(index + 1)}
+        aria-label="Passer ce média"
+      >
+        ›
+      </button>
+
+      {destinations.map((destination) => (
+        <button
+          key={destination.direction}
+          type="button"
+          className={`tri__bord tri__bord--${destination.direction}`}
+          style={{ backgroundColor: destination.couleur }}
+          disabled
+        >
+          {destination.titre}
+        </button>
+      ))}
     </main>
   )
 }
@@ -208,14 +229,14 @@ function CarteMedia({ media }: { media: MediaOneDrive }) {
   const url = urlAffichage(media)
 
   if (url === null) {
-    return <p className="note">Ce média ne peut pas être affiché : OneDrive n'a pas fourni de lien.</p>
+    return <p className="tri__sans-media">Ce média ne peut pas être affiché : OneDrive n'a pas fourni de lien.</p>
   }
 
   if (media.type === 'video') {
-    return <video className="carte__media" src={url} controls preload="metadata" />
+    return <video className="tri__media" src={url} controls preload="metadata" />
   }
 
-  return <img className="carte__media" src={url} alt={media.nom} />
+  return <img className="tri__media" src={url} alt={media.nom} />
 }
 
 /**
