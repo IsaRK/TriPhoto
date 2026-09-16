@@ -557,44 +557,80 @@ button {
   opacity: 1;
 }
 
-/* La direction n'est plus donnée par une flèche découpée mais par la forme même
-   de la pastille : le côté vers lequel on envoie la photo est bombé, le côté
-   opposé presque droit. C'est plus rond, et surtout bien plus compact — la
-   flèche imposait une pointe et une hauteur fixe qui mangeaient la photo.
-   Aucune taille n'est imposée : le bouton fait exactement la largeur de son
-   titre, seule la police est conservée. */
+/* La direction se lit à la forme : une pastille bien ronde, prolongée d'une
+   pointe du côté vers lequel on envoie la photo. La pointe est un pseudo-élément
+   qui reprend la couleur du bouton (`background: inherit`) et mord de quelques
+   pixels dans le corps, pour que les deux ne fassent qu'une seule forme
+   continue. Aucune taille n'est imposée au bouton : il fait exactement la
+   largeur de son titre, seule la police est conservée. */
+.tri__bord::after {
+  content: '';
+  position: absolute;
+  background: inherit;
+}
+
 .tri__bord--gauche,
 .tri__bord--droite {
   top: 50%;
+  padding: 6px 12px;
   transform: translateY(-50%);
 }
 
 .tri__bord--gauche {
-  left: calc(var(--marge-gauche) + 6px);
-  padding: 6px 10px 6px 14px;
-  border-radius: 999px 8px 8px 999px;
+  left: calc(var(--marge-gauche) + 10px);
+}
+
+.tri__bord--gauche::after {
+  top: 50%;
+  right: calc(100% - 5px);
+  width: 13px;
+  height: 16px;
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+  transform: translateY(-50%);
 }
 
 .tri__bord--droite {
-  right: calc(var(--marge-droite) + 6px);
-  padding: 6px 14px 6px 10px;
-  border-radius: 8px 999px 999px 8px;
+  right: calc(var(--marge-droite) + 10px);
+}
+
+.tri__bord--droite::after {
+  top: 50%;
+  left: calc(100% - 5px);
+  width: 13px;
+  height: 16px;
+  clip-path: polygon(100% 50%, 0 0, 0 100%);
+  transform: translateY(-50%);
 }
 
 .tri__bord--haut,
 .tri__bord--bas {
   left: 50%;
+  padding: 6px 12px;
   transform: translateX(-50%);
 }
 
 .tri__bord--haut {
-  top: calc(var(--marge-haut) + 6px);
-  padding: 8px 12px 5px;
-  border-radius: 999px 999px 8px 8px;
+  top: calc(var(--marge-haut) + 10px);
+}
+
+.tri__bord--haut::after {
+  bottom: calc(100% - 5px);
+  left: 50%;
+  width: 16px;
+  height: 13px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  transform: translateX(-50%);
 }
 
 .tri__bord--bas {
-  bottom: calc(var(--marge-bas) + 6px);
-  padding: 5px 12px 8px;
-  border-radius: 8px 8px 999px 999px;
+  bottom: calc(var(--marge-bas) + 10px);
+}
+
+.tri__bord--bas::after {
+  top: calc(100% - 5px);
+  left: 50%;
+  width: 16px;
+  height: 13px;
+  clip-path: polygon(50% 100%, 100% 0, 0 0);
+  transform: translateX(-50%);
 }
