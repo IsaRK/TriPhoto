@@ -55,7 +55,8 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 | Lot 1 | Authentification Microsoft (MSAL, comptes personnels) | ✅ Terminé |
 | Lot 2 | Explorateur de dossiers OneDrive (couche Graph de lecture) | ✅ Terminé |
 | Lot 3 | Écran de configuration : 4 destinations, poubelle, persistance | ✅ Terminé |
-| Lots suivants | Listage des médias, gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
+| Lot 4 | Listage des médias du dossier à trier (couche Graph) | ✅ Terminé |
+| Lots suivants | Gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
 
 ### Contenu du Lot 0
 
@@ -119,11 +120,38 @@ dossier.
   et destination, et le tri tournerait en rond
 - « Commencer le tri » reste désactivé tant qu'un dossier source et au moins une
   destination ne sont pas choisis
-- Chaque emplacement peut être vidé individuellement, et toute la configuration
-  effacée d'un coup
+- Chaque emplacement peut être vidé individuellement
 
 La poubelle est facultative pour démarrer le tri ; le bouton « Supprimer » de l'écran
 de tri sera simplement indisponible tant qu'elle n'est pas choisie.
+
+### Contenu du Lot 4
+
+Uniquement la couche de lecture des médias (`src/graph/medias.ts`), sans interface :
+l'écran de tri viendra au lot suivant.
+
+- Listage du dossier à trier via `GET /drives/{driveId}/items/{id}/children`, en
+  suivant `@odata.nextLink` jusqu'à la dernière page : un dossier de plusieurs
+  milliers de photos est lu en entier
+- Seuls les fichiers dont le `mimeType` commence par `image/` ou `video/` sont
+  retenus ; les sous-dossiers et les documents sont écartés
+- Tri par date de prise de vue croissante, la plus ancienne d'abord, en retenant
+  la première date disponible dans cet ordre :
+
+  | Ordre | Champ Graph | Pourquoi |
+  | --- | --- | --- |
+  | 1 | `photo.takenDateTime` | La date de l'appareil photo, la plus juste — mais absente des vidéos et des captures d'écran |
+  | 2 | `fileSystemInfo.createdDateTime` | La date du fichier sur l'appareil d'origine, conservée par OneDrive à l'envoi |
+  | 3 | `createdDateTime` | La date d'ajout dans OneDrive, en dernier recours |
+
+  Sans la deuxième ligne, toutes les vidéos se regrouperaient au jour où l'appareil
+  a été branché, et non au moment où elles ont été filmées.
+
+- Les dates sont converties une seule fois en millisecondes au moment de la lecture :
+  une date illisible vaut 0 plutôt que `NaN`, sinon un seul fichier au horodatage
+  corrompu désordonnerait toute la liste
+- Les miniatures sont demandées avec `$expand=thumbnails` — c'est une relation Graph
+  et non un champ, elles ne viennent pas toutes seules
 
 ## Les dossiers partagés
 
@@ -199,3 +227,8 @@ Microsoft redemandera donc votre consentement.
 - Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse
   la copie chez son propriétaire.
 - La racine du OneDrive n'est pas choisissable : il faut ouvrir un dossier.
+- Les URL de téléchargement renvoyées par Graph expirent au bout d'environ une heure.
+  Sur une longue session de tri, l'écran d'affichage devra les redemander.
+- OneDrive ne produit pas toujours la miniature de tous les fichiers d'une page.
+  Les médias concernés sont conservés avec une miniature absente, à charge de
+  l'écran de tri de se rabattre sur le fichier lui-même.

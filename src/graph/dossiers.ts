@@ -178,6 +178,6 @@ function convertir(
 }
 
 /** En-tête commun à tous les appels Graph. */
-function enTetes(jetonAcces: string): HeadersInit {
+export function enTetes(jetonAcces: string): HeadersInit {
   return { Authorization: `Bearer ${jetonAcces}` }
 }
