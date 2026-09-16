@@ -1,10 +1,8 @@
-# Publie TriPhoto sur Azure Static Web Apps à chaque changement de `main`.
+# Publie TriPhoto sur GitHub Pages à chaque changement de `main`.
 #
 # Le déploiement n'a lieu que sur `main`, et volontairement pas sur les pull
-# requests : Azure fabriquerait une URL de préversion différente à chaque fois,
-# or chaque URL doit être déclarée une par une dans l'app registration Entra.
-# Une préversion serait donc une application sur laquelle il est impossible de
-# se connecter, ce qui induirait plus en erreur qu'autre chose.
+# requests : il n'existe qu'un seul site GitHub Pages par dépôt, donc publier
+# une branche écraserait la version en service.
 name: Déploiement
 
 on:
@@ -13,8 +11,21 @@ on:
   # Permet aussi de relancer un déploiement à la main depuis l'onglet Actions.
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  # Permet à l'action de publication de prouver son identité auprès de GitHub
+  # Pages sans qu'aucun jeton n'ait à être stocké dans le dépôt.
+  id-token: write
+
+# Si deux poussées se suivent de près, on laisse la première finir puis on ne
+# garde que la dernière : inutile de publier une version déjà dépassée.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  deployer:
+  construire:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,14 +53,26 @@ jobs:
         env:
           VITE_MSAL_CLIENT_ID: ${{ vars.VITE_MSAL_CLIENT_ID }}
 
-      # `skip_app_build` : on a déjà construit nous-mêmes juste au-dessus, avec
-      # notre version de Node et nos tests. Sans cela, Azure reconstruirait de
-      # son côté, sans la variable ci-dessus.
-      - name: Publier sur Azure
-        uses: Azure/static-web-apps-deploy@v1
+      # GitHub Pages ne sait pas rediriger les URL inconnues vers l'application.
+      # En servant une copie d'index.html comme page « 404 », une adresse comme
+      # /TriPhoto/tri chargée directement démarre quand même TriPhoto, et React
+      # Router affiche l'écran de tri. Sans cela, recharger la page pendant le
+      # tri afficherait la page d'erreur de GitHub.
+      - name: Servir l'application aussi en page 404
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: upload
-          app_location: dist
-          skip_app_build: true
-          skip_api_build: true
+          path: dist
+
+  publier:
+    needs: construire
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - id: deploiement
+        uses: actions/deploy-pages@v4
