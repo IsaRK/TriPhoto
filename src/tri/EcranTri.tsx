@@ -180,7 +180,10 @@ export default function EcranTri() {
       </p>
 
       <Link className="tri__coin tri__coin--retour" to="/" aria-label="Retour à l'accueil">
-        ‹
+        <span className="tri__coin-icone" aria-hidden="true">
+          ‹
+        </span>
+        <span className="tri__coin-mot">Accueil</span>
       </Link>
 
       <button
@@ -189,7 +192,10 @@ export default function EcranTri() {
         disabled
         aria-label="Annuler le dernier déplacement"
       >
-        ↺
+        <span className="tri__coin-icone" aria-hidden="true">
+          ↺
+        </span>
+        <span className="tri__coin-mot">Annuler</span>
       </button>
 
       <button
@@ -207,7 +213,10 @@ export default function EcranTri() {
         onClick={() => setIndex(index + 1)}
         aria-label="Passer ce média"
       >
-        ›
+        <span className="tri__coin-icone" aria-hidden="true">
+          ›
+        </span>
+        <span className="tri__coin-mot">Passer</span>
       </button>
 
       {destinations.map((destination) => (

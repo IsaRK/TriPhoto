@@ -285,6 +285,19 @@ describe('affichage des médias', () => {
     expect(screen.getByRole('button', { name: 'Envoyer à la poubelle' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Annuler le dernier déplacement' })).toBeDisabled()
   })
+
+  it('étiquette les trois boutons des coins qui ne sont pas la poubelle', async () => {
+    configurationComplete()
+    vi.stubGlobal('fetch', simulerGraph([elementGraph({ id: 'a' })]))
+    afficher()
+    await screen.findByAltText('photo.jpg')
+
+    // Le mot visible doit faire partie du libellé lu par un lecteur d'écran,
+    // sinon la commande vocale « Accueil » ne trouverait pas le bouton.
+    expect(screen.getByText('Accueil')).toBeInTheDocument()
+    expect(screen.getByText('Annuler')).toBeInTheDocument()
+    expect(screen.getByText('Passer')).toBeInTheDocument()
+  })
 })
 
 describe('fin et cas limites', () => {

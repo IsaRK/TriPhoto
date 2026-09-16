@@ -493,20 +493,33 @@ button {
 
 /* --- Les quatre boutons des coins --- */
 
+/* Les trois boutons porteurs d'un mot s'élargissent à leur texte ; la poubelle,
+   qui reste une icône seule, garde un cercle. */
 .tri__coin {
   position: absolute;
   display: flex;
-  width: 52px;
-  height: 52px;
+  min-width: 56px;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 6px 12px;
   border: 0;
-  border-radius: 50%;
+  border-radius: 22px;
   background: rgba(255, 255, 255, 0.92);
   color: var(--texte);
-  font-size: 1.5rem;
   line-height: 1;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.tri__coin-icone {
+  font-size: 1.35rem;
+}
+
+.tri__coin-mot {
+  margin-top: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
 .tri__coin:disabled {
@@ -526,6 +539,11 @@ button {
 .tri__coin--poubelle {
   bottom: calc(var(--marge-bas) + 12px);
   left: calc(var(--marge-gauche) + 12px);
+  width: 52px;
+  min-width: 0;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
   font-size: 1.25rem;
 }
 
@@ -536,17 +554,18 @@ button {
 
 /* --- Les quatre destinations, au milieu de chaque bord --- */
 
+/* Le bouton s'élargit à la longueur du titre et ne va jamais à la ligne : un
+   titre court coupé en deux ne servirait plus de repère. */
 .tri__bord {
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
   border: 0;
   color: #ffffff;
   font-size: 0.8rem;
   font-weight: 600;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 /* Un bouton désactivé reste à pleine couleur : ces pastilles portent l'identité
@@ -555,44 +574,44 @@ button {
   opacity: 1;
 }
 
-/* La pointe mange 22 % de la longueur du bouton, assez pour lire la direction
-   sans rogner le titre court qui tient au centre. */
+/* La pointe est fixée en pixels et non en pourcentage : exprimée en pourcentage
+   elle s'allongerait avec le titre, et un titre de dix caractères donnerait une
+   flèche deux fois plus longue que celle d'un titre de quatre. */
 .tri__bord--gauche,
 .tri__bord--droite {
   top: 50%;
-  width: 84px;
   height: 56px;
   transform: translateY(-50%);
 }
 
 .tri__bord--gauche {
   left: var(--marge-gauche);
-  padding-left: 20px;
-  clip-path: polygon(0% 50%, 22% 0%, 100% 0%, 100% 100%, 22% 100%);
+  padding: 0 14px 0 30px;
+  clip-path: polygon(0 50%, 18px 0, 100% 0, 100% 100%, 18px 100%);
 }
 
 .tri__bord--droite {
   right: var(--marge-droite);
-  padding-right: 20px;
-  clip-path: polygon(100% 50%, 78% 100%, 0% 100%, 0% 0%, 78% 0%);
+  padding: 0 30px 0 14px;
+  clip-path: polygon(100% 50%, calc(100% - 18px) 100%, 0 100%, 0 0, calc(100% - 18px) 0);
 }
 
 .tri__bord--haut,
 .tri__bord--bas {
   left: 50%;
-  width: 96px;
+  min-width: 92px;
   height: 64px;
   transform: translateX(-50%);
 }
 
 .tri__bord--haut {
   top: var(--marge-haut);
-  padding-top: 16px;
-  clip-path: polygon(50% 0%, 100% 22%, 100% 100%, 0% 100%, 0% 22%);
+  padding: 20px 16px 0;
+  clip-path: polygon(50% 0, 100% 18px, 100% 100%, 0 100%, 0 18px);
 }
 
 .tri__bord--bas {
   bottom: var(--marge-bas);
-  padding-bottom: 16px;
-  clip-path: polygon(50% 100%, 0% 78%, 0% 0%, 100% 0%, 100% 78%);
+  padding: 0 16px 20px;
+  clip-path: polygon(50% 100%, 0 calc(100% - 18px), 0 0, 100% 0, 100% calc(100% - 18px));
 }
