@@ -115,7 +115,6 @@ button {
    bouton rester collé en bas. */
 .ecran--accueil {
   justify-content: center;
-  gap: 24px;
 }
 
 /* Sans cette annulation, l'en-tête et le bloc de contenu vide se partageraient
