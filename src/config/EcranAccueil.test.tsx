@@ -127,10 +127,28 @@ describe('écran de configuration', () => {
     afficher()
 
     expect(screen.getByRole('img', { name: 'TriPhoto' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Se connecter avec Microsoft' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Connect with Microsoft' })).toBeInTheDocument()
     // Les emplacements et le bouton de tri n'ont aucun sens hors connexion.
     expect(screen.queryByRole('button', { name: /^Dossier à trier/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Commencer le tri' })).not.toBeInTheDocument()
+  })
+
+  // Le CSS ne s'applique pas en test : on verrouille les deux classes qui portent
+  // la mise en page d'accueil, faute de pouvoir vérifier le rendu lui-même.
+  it('groupe le logo et le gros bouton de connexion au centre avant connexion', () => {
+    etatMsal.comptes = []
+    const { container } = afficher()
+
+    expect(container.querySelector('.ecran--accueil')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Connect with Microsoft' })).toHaveClass(
+      'action--grande',
+    )
+  })
+
+  it('ne centre pas l’écran une fois connecté, la liste des dossiers le remplit', () => {
+    const { container } = afficher()
+
+    expect(container.querySelector('.ecran--accueil')).toBeNull()
   })
 
   it('propose les six emplacements à configurer', () => {

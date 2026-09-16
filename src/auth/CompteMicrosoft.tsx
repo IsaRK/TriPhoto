@@ -75,8 +75,8 @@ export default function CompteMicrosoft() {
 
   if (etat.statut === 'deconnecte') {
     return (
-      <button type="button" className="action" onClick={connecter}>
-        Se connecter avec Microsoft
+      <button type="button" className="action action--grande" onClick={connecter}>
+        Connect with Microsoft
       </button>
     )
   }
