@@ -266,6 +266,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 9 | Écran de tri entièrement en anglais, coins réorganisés, bouton `Exit` | ✅ Terminé |
 | Lot 10 | Mises à jour qui arrivent vraiment sur le téléphone | ✅ Terminé |
 | Lot 11 | Interface entièrement en anglais, écran de configuration compris | ✅ Terminé |
+| Lot 12 | Revue de sécurité et durcissement de la pagination Graph | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -690,3 +691,45 @@ Microsoft redemandera donc votre consentement.
 - OneDrive ne produit pas toujours la miniature de tous les fichiers d'une page.
   Les médias concernés sont conservés avec une miniature absente, à charge de
   l'écran de tri de se rabattre sur le fichier lui-même.
+## Contenu du Lot 12
+
+Une revue de sécurité complète du dépôt a été menée : secrets et historique git,
+stockage des jetons MSAL, construction des URL Graph, risques XSS, service worker,
+redirection MSAL, dépendances, workflow GitHub Actions et réglages du dépôt.
+
+**Aucune vulnérabilité exploitable n'a été trouvée** : pas de secret dans le code
+ni dans l'historique, `npm audit` à zéro, aucun `dangerouslySetInnerHTML`, workflow
+de déploiement aux permissions minimales.
+
+Deux suites ont été données à cette revue.
+
+### Contrôle d'hôte sur la pagination Graph
+
+Les listes OneDrive arrivent par pages : chaque réponse peut contenir un champ
+`@odata.nextLink`, l'adresse de la page suivante, que l'on rappelle **avec le jeton
+d'accès dans l'en-tête**. Cette adresse vient de Microsoft, mais rien dans le code
+ne le vérifiait. La fonction `verifierUrlGraph` (dans `src/graph/dossiers.ts`)
+contrôle désormais que l'URL commence bien par `https://graph.microsoft.com/` avant
+chaque appel de pagination, dans la liste des dossiers comme dans celle des médias.
+Sinon, le tri s'arrête avec un message clair plutôt que d'envoyer le jeton ailleurs.
+
+C'est une ceinture en plus de la bretelle : trois lignes, deux tests, et le jeton ne
+peut plus quitter le domaine de Graph.
+
+### Filets de sécurité activés sur le dépôt
+
+Ces réglages GitHub gratuits étaient tous désactivés :
+
+| Réglage | Ce qu'il fait |
+| --- | --- |
+| Alertes Dependabot | Prévient quand une dépendance a une faille connue |
+| Mises à jour de sécurité Dependabot | Ouvre automatiquement la PR de correction |
+| Secret scanning | Détecte un secret déjà présent dans le dépôt |
+| Protection contre l'envoi de secrets | Bloque un `push` qui contiendrait un secret |
+
+Le dépôt étant public, ils sont tous gratuits. Le dernier est le plus utile au
+quotidien : il refuse le `push` **avant** que le secret n'atteigne GitHub.
+
+La protection de branche sur `main` reste volontairement désactivée : sur un projet
+à une seule personne, elle empêcherait le merge direct des PR sans rien protéger de
+plus.

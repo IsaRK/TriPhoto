@@ -112,7 +112,7 @@ async function listerDossiers(
   // Graph pagine les résultats : tant qu'il renvoie une URL de page suivante,
   // on continue, sinon un dossier de plus de 200 éléments serait tronqué.
   while (url) {
-    const reponse = await fetch(url, {
+    const reponse = await fetch(verifierUrlGraph(url), {
       headers: enTetes(jetonAcces),
     })
 
@@ -175,6 +175,25 @@ function convertir(
   }
 
   return undefined
+}
+
+/** Seule adresse à laquelle le jeton d'accès a le droit d'être envoyé. */
+const PREFIXE_GRAPH = 'https://graph.microsoft.com/'
+
+/**
+ * Vérifie qu'une URL appartient bien à Microsoft Graph avant de lui envoyer le
+ * jeton d'accès.
+ *
+ * Les adresses de page suivante (`@odata.nextLink`) sont lues dans une réponse
+ * JSON : elles viennent de Graph, mais rien dans le code ne le garantissait. Ce
+ * contrôle de trois lignes évite qu'une réponse inattendue fasse partir le jeton
+ * vers un autre domaine.
+ */
+export function verifierUrlGraph(url: string): string {
+  if (!url.startsWith(PREFIXE_GRAPH)) {
+    throw new Error('Microsoft Graph returned an unexpected address.')
+  }
+  return url
 }
 
 /** En-tête commun à tous les appels Graph. */

@@ -213,6 +213,23 @@ describe('lecture des dossiers OneDrive', () => {
     expect(dossiers.map((d) => d.nom)).toEqual(['Photos', 'Vidéos'])
   })
 
+  it('refuse de suivre une page suivante hors de Microsoft Graph', async () => {
+    // Le jeton d'accès accompagne chaque appel : une adresse de page suivante
+    // pointant ailleurs l'enverrait à un autre domaine.
+    const fetchSimule = simulerAppels(
+      monDrive(),
+      reponse({
+        value: [dossier('1', 'Photos')],
+        '@odata.nextLink': 'https://exemple-malveillant.test/v1.0/page-2',
+      }),
+      reponse({ value: [dossier('2', 'Vidéos')] }),
+    )
+
+    await expect(listerDossiersRacine('jeton-de-test')).rejects.toThrow('unexpected address')
+    // Deux appels seulement : le drive, puis la première page. Jamais le tiers.
+    expect(fetchSimule).toHaveBeenCalledTimes(2)
+  })
+
   it('trie les dossiers par ordre alphabétique', async () => {
     simulerAppels(
       monDrive(),

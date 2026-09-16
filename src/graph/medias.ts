@@ -5,7 +5,7 @@
  * appelée, les champs demandés et le code de retour.
  */
 
-import { enTetes } from './dossiers'
+import { enTetes, verifierUrlGraph } from './dossiers'
 
 export type MediaOneDrive = {
   id: string
@@ -90,7 +90,7 @@ export async function listerMedias(
   // Graph pagine les résultats : tant qu'il renvoie une URL de page suivante, on
   // continue, sinon un dossier de plus de 200 éléments serait tronqué.
   while (url) {
-    const reponse = await fetch(url, { headers: enTetes(jetonAcces) })
+    const reponse = await fetch(verifierUrlGraph(url), { headers: enTetes(jetonAcces) })
 
     if (!reponse.ok) {
       throw new Error(`Microsoft Graph refused to read the media (code ${reponse.status}).`)
