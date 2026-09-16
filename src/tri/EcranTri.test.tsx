@@ -326,7 +326,7 @@ describe('affichage des médias', () => {
     expect(screen.getByRole('button', { name: 'Skip' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled()
     // Rien n'a encore été supprimé : il n'y a rien à annuler.
-    expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
   })
 })
 
@@ -350,7 +350,7 @@ describe('poubelle et annulation', () => {
     expect(deplacements[0].corps.parentReference.id).toBe('Corbeille')
   })
 
-  it('active Recover après une suppression', async () => {
+  it('active Cancel après une suppression', async () => {
     configurationComplete()
     vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a' })]))
     afficher()
@@ -358,7 +358,7 @@ describe('poubelle et annulation', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled())
   })
 
   it('ramène le média dans le dossier à trier et revient dessus', async () => {
@@ -373,13 +373,13 @@ describe('poubelle et annulation', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await screen.findByAltText('b.jpg')
-    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
     const deplacements = deplacementsDemandes(fetchSimule)
     expect(deplacements[1].corps.parentReference.id).toBe('Pellicule')
     // Plus rien à récupérer : la suppression a bien été défaite.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled())
   })
 
   it('n’annule que la dernière suppression, sans remonter à la précédente', async () => {
@@ -400,11 +400,11 @@ describe('poubelle et annulation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await screen.findByAltText('c.jpg')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     // On récupère « b », la dernière supprimée, et on s'arrête là : « a » est acquis.
     expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled())
   })
 
   it('garde le média récupérable quand un déplacement échoue', async () => {
@@ -425,14 +425,14 @@ describe('poubelle et annulation', () => {
     await screen.findByAltText('a.jpg')
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled())
 
     echoue = true
-    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(await screen.findByText(/Le déplacement a échoué/)).toBeInTheDocument()
     // L'échec ne doit pas oublier le média : l'annulation reste possible.
-    expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
   })
 
   it('refuse un déplacement vers un autre OneDrive avec un message lisible', async () => {
@@ -570,6 +570,19 @@ describe('swipe et clavier', () => {
     expect(deplacementsDemandes(fetchSimule)).toHaveLength(0)
   })
 
+  it("n'affiche aucun bouton pour une direction sans dossier", async () => {
+    // Seule la gauche est configurée : les trois autres bords restent nus,
+    // plutôt que d'afficher une pastille qui ne ferait rien.
+    configurationComplete()
+    vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a', name: 'a.jpg' })]))
+    const { container } = afficher()
+    await screen.findByAltText('a.jpg')
+
+    expect(container.querySelectorAll('.tri__bord')).toHaveLength(1)
+    expect(container.querySelector('.tri__bord--gauche')).not.toBeNull()
+    expect(container.querySelector('.tri__bord--droite')).toBeNull()
+  })
+
   it('annonce le dossier visé pendant le geste, une fois le seuil franchi', async () => {
     quatreDirections()
     vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a', name: 'a.jpg' })]))
@@ -653,7 +666,7 @@ describe('swipe et clavier', () => {
     expect(deplacementsDemandes(fetchSimule)[0].corps.parentReference.id).toBe('Famille')
   })
 
-  it('rend le média swipé récupérable par Recover', async () => {
+  it('rend le média swipé récupérable par Cancel', async () => {
     quatreDirections()
     const fetchSimule = simulerGraphEtDeplacements([
       elementGraph({ id: 'a', name: 'a.jpg' }),
@@ -665,7 +678,7 @@ describe('swipe et clavier', () => {
 
     glisser(-150, 0)
     await screen.findByAltText('b.jpg')
-    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
     expect(deplacementsDemandes(fetchSimule)[1].corps.parentReference.id).toBe('Pellicule')

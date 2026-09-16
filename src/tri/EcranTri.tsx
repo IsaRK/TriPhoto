@@ -35,7 +35,7 @@ type Deplacement = {
  * On affiche les médias du dossier à trier, un par un, du plus ancien au plus
  * récent. On swipe le média vers l'un des quatre dossiers de destination, ou
  * l'on utilise les boutons des coins : « Delete » l'envoie vers la Poubelle,
- * « Recover » ramène le dernier média déplacé, « Skip » passe au suivant sans
+ * « Cancel » ramène le dernier média déplacé, « Skip » passe au suivant sans
  * rien déplacer.
  */
 export default function EcranTri() {
@@ -209,7 +209,7 @@ export default function EcranTri() {
         */}
         {dernierDeplacement === null ? null : (
           <button type="button" className="action" onClick={annulerDernierDeplacement}>
-            Recover
+            Cancel
           </button>
         )}
         <button type="button" className="action" onClick={() => setIndex(0)}>
@@ -303,7 +303,7 @@ export default function EcranTri() {
       </Link>
 
       {/*
-        Seul « Recover » peut être inactif : il n'a rien à annuler tant qu'aucun
+        Seul « Cancel » peut être inactif : il n'a rien à annuler tant qu'aucun
         média n'a été envoyé à la poubelle.
       */}
       <button
@@ -312,7 +312,7 @@ export default function EcranTri() {
         onClick={annulerDernierDeplacement}
         disabled={dernierDeplacement === null}
       >
-        Recover
+        Cancel
       </button>
 
       <button type="button" className="tri__coin tri__coin--poubelle" onClick={envoyerALaPoubelle}>

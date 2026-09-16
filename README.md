@@ -20,6 +20,55 @@ Copier `.env.example` vers `.env.local` et y renseigner `VITE_MSAL_CLIENT_ID`.
 Sans cette variable, l'application affiche un écran « Configuration incomplète »
 qui rappelle la marche à suivre.
 
+## Voir le rendu sur téléphone
+
+TriPhoto est faite pour être utilisée au doigt, sur un téléphone. Deux façons de le
+vérifier, de la plus rapide à la plus fidèle.
+
+### Coup d'œil rapide : le mode appareil des DevTools
+
+Dans Edge ou Chrome, sur `http://localhost:5173`, appuyer sur `F12` puis
+`Ctrl+Shift+M`. Une liste déroulante en haut permet de choisir un modèle
+(iPhone 14 Pro, Pixel 7…) ou de saisir des dimensions libres.
+
+C'est parfait pour vérifier une mise en page, et le navigateur traduit même la souris en
+événements tactiles, ce qui suffit à essayer les gestes de swipe. En revanche il ne
+reproduit ni la vraie densité de pixels, ni l'inertie du doigt, ni la barre d'adresse qui
+se rétracte au défilement.
+
+### Vérification réelle : son propre téléphone
+
+```bash
+npm run dev:mobile
+```
+
+Vite affiche alors une ligne `Network:` du genre `https://192.168.1.12:5173/` : c'est
+l'adresse à ouvrir dans le navigateur du téléphone, **connecté au même Wi-Fi** que
+l'ordinateur.
+
+Trois points à connaître :
+
+- **C'est du HTTPS, et c'est obligatoire.** Entra n'accepte une URI de redirection en
+  clair (`http://`) que pour `localhost`. Un téléphone qui arriverait sur
+  `http://192.168.x.x:5173` se verrait refuser la connexion Microsoft. D'où le mode
+  `dev:mobile`, qui active un certificat auto-signé.
+- **Le téléphone affichera un avertissement de sécurité** (« connexion non privée ») :
+  le certificat est fabriqué à la volée par le poste de développement, personne ne l'a
+  signé. Il faut passer outre une fois — c'est sans danger sur son propre réseau.
+- **Il faut déclarer cette adresse dans Entra** : *App registrations → TriPhoto →
+  Authentication → Single-page application → Add URI*, avec exactement
+  `https://192.168.1.12:5173` (votre IP, sans barre oblique finale). Cette IP est
+  attribuée par la box et peut changer ; si la connexion échoue après un redémarrage,
+  c'est la première chose à revérifier.
+
+Si le téléphone n'arrive pas à joindre l'adresse, c'est en général le pare-feu Windows
+qui bloque le port 5173 en entrée : autoriser Node.js sur les **réseaux privés** lors de
+la fenêtre qui s'affiche au premier lancement, ou ajouter une règle entrante pour ce port.
+
+Le code, lui, n'a rien de particulier à faire : MSAL utilise `window.location.origin`
+comme URI de redirection, donc il suit automatiquement l'adresse par laquelle on est
+arrivé.
+
 ## Créer l'app registration Entra
 
 L'application n'a pas de backend : elle se connecte à Microsoft depuis le navigateur.
@@ -162,7 +211,7 @@ l'écran de tri viendra au lot suivant.
 ### Contenu du Lot 5
 
 L'écran de tri. On voit les médias un par un, et les trois boutons qui ne dépendent pas
-d'une direction agissent déjà : `Delete` envoie le média à la poubelle, `Recover` le
+d'une direction agissent déjà : `Delete` envoie le média à la poubelle, `Cancel` le
 ramène, `Skip` passe au suivant. Les **gestes de swipe** vers les quatre destinations sont
 le sujet du Lot 6, décrit plus bas.
 
@@ -175,23 +224,23 @@ le sujet du Lot 6, décrit plus bas.
   leur titre le permet, prolongées d'une **pointe** du côté vers lequel on envoie la photo.
   La flèche découpée d'une première version imposait une pointe longue et une hauteur fixe
   qui mangeaient l'image.
-- Les **quatre boutons des coins** : `Home` (haut gauche), `Recover` (haut droite),
+- Les **quatre boutons des coins** : `Home` (haut gauche), `Cancel` (haut droite),
   `Delete` (bas gauche), `Skip` (bas droite). Ils portent leur mot seul, sans
   pictogramme, et ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
   Ce sont les seuls libellés en anglais de l'application, à la demande expresse de
   l'utilisatrice : ces quatre mots lui sont plus familiers que leur traduction.
-- `Home`, `Delete` et `Skip` sont **toujours actifs**. Seul `Recover` peut être inactif :
-  il n'a rien à annuler tant qu'aucun média n'a été envoyé à la poubelle. Il est alors
+- `Home`, `Delete` et `Skip` sont **toujours actifs**. Seul `Cancel` peut être inactif :
+  il n'a rien à annuler tant qu'aucun média n'a été déplacé. Il est alors
   estompé, ce qui est ici une information juste et non un défaut d'affichage, puisque les
   trois autres ne le sont jamais.
 - **Supprimer ne supprime pas** : `Delete` déplace le média vers le dossier Poubelle
   configuré, par un `PATCH /drives/{driveId}/items/{itemId}` avec
   `{ "parentReference": { "id": "<idPoubelle>" } }`.
 - **Annuler** refait le même appel en sens inverse, vers le dossier à trier, et **réaffiche la
-  photo récupérée**. `Recover` défait **uniquement le dernier `Delete`** : on ne remonte pas
-  aux suppressions précédentes, qui sont acquises. Une fois l'annulation faite, le bouton
-  redevient inactif jusqu'à la prochaine suppression.
-- `Recover` reste proposé sur l'écran « Tri terminé » quand une suppression est encore
+  photo récupérée**. `Cancel` défait **uniquement le dernier déplacement** : on ne remonte pas
+  aux précédents, qui sont acquis. Une fois l'annulation faite, le bouton
+  redevient inactif jusqu'au prochain déplacement.
+- `Cancel` reste proposé sur l'écran « Tri terminé » quand une suppression est encore
   rattrapable : sans cela, le dernier média envoyé à la poubelle ne serait plus récupérable
   depuis TriPhoto.
 - Un déplacement qui échoue **ne perd rien** : la liste et le média récupérable restent en
@@ -233,15 +282,16 @@ dossier où elle doit aller, et elle y va.
   couleur. Le message est : « si tu lâches maintenant, la photo part là ». Tant que le
   voile n'est pas là, le geste peut encore être abandonné en ramenant le doigt.
 - Swiper vers une direction **à laquelle aucun dossier n'est associé** ne fait rien : ni
-  voile, ni déplacement, la carte revient en place. Configurer les quatre destinations
-  n'est pas obligatoire, et une direction vide doit rester inoffensive.
+  voile, ni déplacement, la carte revient en place. Et comme il n'y aurait rien à
+  déclencher, **la pastille correspondante n'est pas affichée du tout** : le bord reste nu.
+  Configurer les quatre destinations n'est pas obligatoire.
 - Les **pastilles de bord sont aussi cliquables**. Sur un ordinateur, viser une pastille à
   la souris est plus simple que de dessiner un glissement, et un bouton reste accessible
   au lecteur d'écran là où un geste ne l'est pas.
 - Les **flèches du clavier** envoient la photo dans la direction correspondante, ce qui
   permet de tester le tri sur un ordinateur sans souris. Elles appellent `preventDefault()`
   pour ne pas faire défiler la page en même temps.
-- Un swipe est un déplacement comme un autre : `Recover` **annule aussi un swipe**, pas
+- Un swipe est un déplacement comme un autre : `Cancel` **annule aussi un swipe**, pas
   seulement un `Delete`. Il défait toujours le dernier déplacement en date, quelle qu'en
   soit l'origine.
 - La logique du geste est isolée dans `src/tri/geste.ts`, en fonctions **pures**

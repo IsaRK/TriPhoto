@@ -529,7 +529,7 @@ button {
   white-space: nowrap;
 }
 
-/* Seul « Recover » peut rester durablement inactif, faute de déplacement à
+/* Seul « Cancel » peut rester durablement inactif, faute de déplacement à
    annuler : l'estomper est ici une information, pas un défaut d'affichage. */
 .tri__coin:disabled {
   cursor: default;
