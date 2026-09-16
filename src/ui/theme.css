@@ -25,7 +25,12 @@
   --marge-droite: env(safe-area-inset-right, 0px);
 
   color-scheme: light;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   color: var(--texte);
   background-color: var(--fond);
 }
@@ -80,10 +85,8 @@ button {
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  padding: calc(var(--marge-haut) + var(--espace))
-    calc(var(--marge-droite) + var(--espace))
-    calc(var(--marge-bas) + var(--espace))
-    calc(var(--marge-gauche) + var(--espace));
+  padding: calc(var(--marge-haut) + var(--espace)) calc(var(--marge-droite) + var(--espace))
+    calc(var(--marge-bas) + var(--espace)) calc(var(--marge-gauche) + var(--espace));
   gap: var(--espace);
 }
 
@@ -486,10 +489,28 @@ button {
   white-space: nowrap;
 }
 
-/* Pas d'estompage des boutons désactivés : Delete et Recover attendent le Lot 7,
-   mais les quatre boutons forment une famille et doivent se ressembler. */
+/* Seul « Recover » peut rester durablement inactif, faute de déplacement à
+   annuler : l'estomper est ici une information, pas un défaut d'affichage. */
 .tri__coin:disabled {
   cursor: default;
+  opacity: 0.35;
+}
+
+/* Un déplacement raté n'efface rien à l'écran : le message se pose par-dessus la
+   photo, qui reste à trier. */
+.tri__erreur {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: 300px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--texte);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: center;
+  transform: translate(-50%, -50%);
 }
 
 .tri__coin--retour {

@@ -66,6 +66,28 @@ function simulerGraph(elements: Record<string, unknown>[]) {
   return vi.fn(() => json({ value: elements }))
 }
 
+/**
+ * Comme `simulerGraph`, mais répond aussi aux `PATCH` de déplacement. Le mock
+ * distingue les deux sur la méthode HTTP, comme le ferait Graph.
+ */
+function simulerGraphEtDeplacements(elements: Record<string, unknown>[]) {
+  return vi.fn((_url: string, options?: RequestInit) =>
+    options?.method === 'PATCH' ? json({}) : json({ value: elements }),
+  )
+}
+
+/** Les corps des `PATCH` envoyés, dans l'ordre, pour vérifier les destinations. */
+function deplacementsDemandes(fetchSimule: ReturnType<typeof vi.fn>) {
+  return fetchSimule.mock.calls
+    .filter(([, options]) => (options as RequestInit | undefined)?.method === 'PATCH')
+    .map(([url, options]) => ({
+      url: url as string,
+      corps: JSON.parse((options as RequestInit).body as string) as {
+        parentReference: { id: string }
+      },
+    }))
+}
+
 function afficher() {
   return render(
     <MemoryRouter initialEntries={['/tri']}>
@@ -144,8 +166,16 @@ describe('affichage des médias', () => {
     vi.stubGlobal(
       'fetch',
       simulerGraph([
-        elementGraph({ id: 'recent', name: 'recent.jpg', photo: { takenDateTime: '2024-08-01T10:00:00Z' } }),
-        elementGraph({ id: 'ancien', name: 'ancien.jpg', photo: { takenDateTime: '2024-07-14T10:00:00Z' } }),
+        elementGraph({
+          id: 'recent',
+          name: 'recent.jpg',
+          photo: { takenDateTime: '2024-08-01T10:00:00Z' },
+        }),
+        elementGraph({
+          id: 'ancien',
+          name: 'ancien.jpg',
+          photo: { takenDateTime: '2024-07-14T10:00:00Z' },
+        }),
       ]),
     )
     afficher()
@@ -175,8 +205,16 @@ describe('affichage des médias', () => {
     vi.stubGlobal(
       'fetch',
       simulerGraph([
-        elementGraph({ id: 'a', name: 'premiere.jpg', photo: { takenDateTime: '2024-07-14T10:00:00Z' } }),
-        elementGraph({ id: 'b', name: 'seconde.jpg', photo: { takenDateTime: '2024-08-01T10:00:00Z' } }),
+        elementGraph({
+          id: 'a',
+          name: 'premiere.jpg',
+          photo: { takenDateTime: '2024-07-14T10:00:00Z' },
+        }),
+        elementGraph({
+          id: 'b',
+          name: 'seconde.jpg',
+          photo: { takenDateTime: '2024-08-01T10:00:00Z' },
+        }),
       ]),
     )
     afficher()
@@ -202,9 +240,7 @@ describe('affichage des médias', () => {
     configurationComplete()
     vi.stubGlobal(
       'fetch',
-      simulerGraph([
-        elementGraph({ id: 'a', name: 'film.mp4', file: { mimeType: 'video/mp4' } }),
-      ]),
+      simulerGraph([elementGraph({ id: 'a', name: 'film.mp4', file: { mimeType: 'video/mp4' } })]),
     )
     const { container } = afficher()
 
@@ -231,7 +267,11 @@ describe('affichage des médias', () => {
     vi.stubGlobal(
       'fetch',
       simulerGraph([
-        elementGraph({ id: 'a', name: 'premiere.jpg', photo: { takenDateTime: '2024-07-14T10:00:00Z' } }),
+        elementGraph({
+          id: 'a',
+          name: 'premiere.jpg',
+          photo: { takenDateTime: '2024-07-14T10:00:00Z' },
+        }),
         elementGraph({
           id: 'b',
           name: 'seconde.jpg',
@@ -284,8 +324,135 @@ describe('affichage des médias', () => {
     // le libellé lu par un lecteur d'écran, sans aria-label à tenir à jour.
     expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Skip' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled()
+    // Rien n'a encore été supprimé : il n'y a rien à annuler.
     expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled()
+  })
+})
+
+describe('poubelle et annulation', () => {
+  it('déplace le média vers la poubelle et passe au suivant', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
+    const deplacements = deplacementsDemandes(fetchSimule)
+    expect(deplacements).toHaveLength(1)
+    expect(deplacements[0].url).toContain('/items/a')
+    expect(deplacements[0].corps.parentReference.id).toBe('Corbeille')
+  })
+
+  it('active Recover après une suppression', async () => {
+    configurationComplete()
+    vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a' })]))
+    afficher()
+    await screen.findByAltText('photo.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled())
+  })
+
+  it('ramène le média dans le dossier à trier et revient dessus', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByAltText('b.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    const deplacements = deplacementsDemandes(fetchSimule)
+    expect(deplacements[1].corps.parentReference.id).toBe('Pellicule')
+    // La pile est vide de nouveau : il n'y a plus rien à annuler.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled())
+  })
+
+  it('permet plusieurs annulations successives', async () => {
+    configurationComplete()
+    vi.stubGlobal(
+      'fetch',
+      simulerGraphEtDeplacements([
+        elementGraph({ id: 'a', name: 'a.jpg' }),
+        elementGraph({ id: 'b', name: 'b.jpg' }),
+        elementGraph({ id: 'c', name: 'c.jpg' }),
+      ]),
+    )
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByAltText('b.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByAltText('c.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+  })
+
+  it('garde la pile d’annulation quand un déplacement échoue', async () => {
+    configurationComplete()
+    let echoue = false
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, options?: RequestInit) => {
+        if (options?.method === 'PATCH') {
+          return echoue
+            ? Promise.resolve({ ok: false, status: 503, json: async () => ({}) } as Response)
+            : json({})
+        }
+        return json({ value: [elementGraph({ id: 'a', name: 'a.jpg' })] })
+      }),
+    )
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled())
+
+    echoue = true
+    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+
+    expect(await screen.findByText(/Le déplacement a échoué/)).toBeInTheDocument()
+    // L'échec ne doit pas vider la pile : l'annulation reste possible.
+    expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled()
+  })
+
+  it('refuse un déplacement vers un autre OneDrive avec un message lisible', async () => {
+    enregistrer({
+      source: dossier('Pellicule'),
+      poubelle: {
+        id: 'Corbeille',
+        driveId: 'autre-drive',
+        nom: 'Corbeille',
+        chemin: 'Partagé / Corbeille',
+        titre: 'Corbeille',
+      },
+      gauche: dossier('Vacances'),
+    })
+    vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a' })]))
+    afficher()
+    await screen.findByAltText('photo.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText(/autre OneDrive/)).toBeInTheDocument()
   })
 })
 
@@ -302,7 +469,9 @@ describe('fin et cas limites', () => {
     configurationComplete()
     vi.stubGlobal(
       'fetch',
-      simulerGraph([elementGraph({ id: 'doc', name: 'notes.pdf', file: { mimeType: 'application/pdf' } })]),
+      simulerGraph([
+        elementGraph({ id: 'doc', name: 'notes.pdf', file: { mimeType: 'application/pdf' } }),
+      ]),
     )
     afficher()
 

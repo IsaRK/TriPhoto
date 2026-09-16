@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { estInteractionRequise, recupererJetonAcces, SCOPES } from '../auth/msal'
 import { lireConfiguration, peutCommencerLeTri } from '../config/configuration'
+import { deplacerElement } from '../graph/deplacements'
 import type { MediaOneDrive } from '../graph/medias'
 import { listerMedias } from '../graph/medias'
 import EcranMessage from '../ui/EcranMessage'
@@ -19,13 +20,20 @@ type EtatChargement =
   | { statut: 'sessionExpiree' }
   | { statut: 'erreur'; message: string }
 
+/** Un déplacement déjà effectué, gardé pour pouvoir le défaire. */
+type Deplacement = {
+  media: MediaOneDrive
+  /** Position du média dans la liste, pour y revenir après annulation. */
+  index: number
+}
+
 /**
  * Écran de tri.
  *
- * Lot 5 : on affiche les médias du dossier à trier, un par un, du plus ancien
- * au plus récent. Les gestes de swipe et les déplacements vers les dossiers de
- * destination arriveront aux lots suivants ; pour l'instant seul « Passer »
- * fait avancer.
+ * On affiche les médias du dossier à trier, un par un, du plus ancien au plus
+ * récent. « Delete » envoie le média vers le dossier Poubelle, « Recover » le
+ * ramène dans le dossier à trier, « Skip » passe au suivant sans rien déplacer.
+ * Les gestes de swipe vers les quatre destinations arrivent au lot suivant.
  */
 export default function EcranTri() {
   const { instance, accounts } = useMsal()
@@ -35,6 +43,9 @@ export default function EcranTri() {
   const [etat, setEtat] = useState<EtatChargement>({ statut: 'chargement' })
   const [index, setIndex] = useState(0)
   const [tentative, setTentative] = useState(0)
+  const [pileAnnulation, setPileAnnulation] = useState<Deplacement[]>([])
+  const [deplacementEnCours, setDeplacementEnCours] = useState(false)
+  const [erreurDeplacement, setErreurDeplacement] = useState<string | null>(null)
 
   const source = configuration.source
 
@@ -70,11 +81,11 @@ export default function EcranTri() {
     }
   }, [instance, idCompte, source, tentative])
 
-  if (!peutCommencerLeTri(configuration) || source === null) {
+  if (!peutCommencerLeTri(configuration) || source === null || configuration.poubelle === null) {
     return (
       <EcranMessage
         titre="Tri impossible"
-        message="Choisissez un dossier à trier et au moins une destination avant de commencer."
+        message="Choisissez un dossier à trier, un dossier poubelle et au moins une destination avant de commencer."
       >
         <Link className="action" to="/">
           Aller à la configuration
@@ -132,6 +143,43 @@ export default function EcranTri() {
   }
 
   const medias = etat.medias
+  const dernierDeplacement = pileAnnulation[pileAnnulation.length - 1]
+
+  /**
+   * Exécute un déplacement Graph. L'échec n'efface ni la liste ni la pile
+   * d'annulation : il affiche un message et laisse tout en place, pour qu'un
+   * réseau capricieux ne coûte pas le travail déjà fait.
+   */
+  const executerDeplacement = (
+    aDeplacer: MediaOneDrive,
+    destination: { driveId: string; id: string },
+    apresSucces: () => void,
+  ) => {
+    setDeplacementEnCours(true)
+    setErreurDeplacement(null)
+
+    recupererJetonAcces(instance, compte)
+      .then((jeton) => deplacerElement(jeton, aDeplacer.driveId, aDeplacer.id, destination))
+      .then(() => {
+        setDeplacementEnCours(false)
+        apresSucces()
+      })
+      .catch((erreur: unknown) => {
+        setDeplacementEnCours(false)
+        setErreurDeplacement(decrireEchecDeplacement(erreur))
+      })
+  }
+
+  const annulerDernierDeplacement = () => {
+    if (deplacementEnCours || dernierDeplacement === undefined) {
+      return
+    }
+    executerDeplacement(dernierDeplacement.media, source, () => {
+      setPileAnnulation(pileAnnulation.slice(0, -1))
+      // On revient sur le média restauré : il est de nouveau à trier.
+      setIndex(dernierDeplacement.index)
+    })
+  }
 
   if (medias.length === 0) {
     return (
@@ -149,9 +197,23 @@ export default function EcranTri() {
   if (index >= medias.length) {
     return (
       <EcranMessage titre="Tri terminé" message={decrireFin(medias.length)}>
+        {/*
+          Annuler reste possible ici : sans ce bouton, le dernier média envoyé à
+          la poubelle ne pourrait plus jamais être récupéré depuis TriPhoto.
+        */}
+        {dernierDeplacement === undefined ? null : (
+          <button type="button" className="action" onClick={annulerDernierDeplacement}>
+            Recover
+          </button>
+        )}
         <button type="button" className="action" onClick={() => setIndex(0)}>
           Tout revoir
         </button>
+        {erreurDeplacement === null ? null : (
+          <p className="note" role="alert">
+            {erreurDeplacement}
+          </p>
+        )}
         <Link className="action action--discrete" to="/">
           Retour à la configuration
         </Link>
@@ -162,6 +224,25 @@ export default function EcranTri() {
   const media = medias[index]
   const suivant = medias[index + 1]
   const destinations = destinationsConfigurees(configuration)
+  const poubelle = configuration.poubelle
+
+  const envoyerALaPoubelle = () => {
+    if (deplacementEnCours) {
+      return
+    }
+    executerDeplacement(media, poubelle, () => {
+      setPileAnnulation([...pileAnnulation, { media, index }])
+      setIndex(index + 1)
+    })
+  }
+
+  const passer = () => {
+    if (deplacementEnCours) {
+      return
+    }
+    setErreurDeplacement(null)
+    setIndex(index + 1)
+  }
 
   return (
     <main className="tri">
@@ -179,23 +260,34 @@ export default function EcranTri() {
         <span className="tri__date">{formaterDatePriseDeVue(media.priseLe)}</span>
       </p>
 
+      {erreurDeplacement === null ? null : (
+        <p className="tri__erreur" role="alert">
+          {erreurDeplacement}
+        </p>
+      )}
+
       <Link className="tri__coin tri__coin--retour" to="/">
         Home
       </Link>
 
-      <button type="button" className="tri__coin tri__coin--annuler" disabled>
+      {/*
+        Seul « Recover » peut être inactif : il n'a rien à annuler tant qu'aucun
+        média n'a été envoyé à la poubelle.
+      */}
+      <button
+        type="button"
+        className="tri__coin tri__coin--annuler"
+        onClick={annulerDernierDeplacement}
+        disabled={dernierDeplacement === undefined}
+      >
         Recover
       </button>
 
-      <button type="button" className="tri__coin tri__coin--poubelle" disabled>
+      <button type="button" className="tri__coin tri__coin--poubelle" onClick={envoyerALaPoubelle}>
         Delete
       </button>
 
-      <button
-        type="button"
-        className="tri__coin tri__coin--passer"
-        onClick={() => setIndex(index + 1)}
-      >
+      <button type="button" className="tri__coin tri__coin--passer" onClick={passer}>
         Skip
       </button>
 
@@ -218,7 +310,11 @@ function CarteMedia({ media }: { media: MediaOneDrive }) {
   const url = urlAffichage(media)
 
   if (url === null) {
-    return <p className="tri__sans-media">Ce média ne peut pas être affiché : OneDrive n'a pas fourni de lien.</p>
+    return (
+      <p className="tri__sans-media">
+        Ce média ne peut pas être affiché : OneDrive n'a pas fourni de lien.
+      </p>
+    )
   }
 
   if (media.type === 'video') {
@@ -254,4 +350,9 @@ function decrireFin(nombre: number): string {
 function decrireErreur(erreur: unknown): string {
   const detail = erreur instanceof Error ? erreur.message : 'raison inconnue'
   return `Impossible de lire les médias de ce dossier : ${detail}`
+}
+
+function decrireEchecDeplacement(erreur: unknown): string {
+  const detail = erreur instanceof Error ? erreur.message : 'raison inconnue'
+  return `Le déplacement a échoué : ${detail} Le média est resté en place, vous pouvez réessayer.`
 }

@@ -160,10 +160,10 @@ l'écran de tri viendra au lot suivant.
 
 ### Contenu du Lot 5
 
-L'écran de tri, en **lecture seule** : on voit les médias, on ne les déplace pas encore.
-Les gestes de swipe et les déplacements vers les dossiers de destination sont le sujet
-des deux lots suivants. Ce lot sert surtout à confronter la couche Graph du Lot 4 à un
-vrai OneDrive.
+L'écran de tri. On voit les médias un par un, et les trois boutons qui ne dépendent pas
+d'une direction agissent déjà : `Delete` envoie le média à la poubelle, `Recover` le
+ramène, `Skip` passe au suivant. Les **gestes de swipe** vers les quatre destinations sont
+le sujet du lot suivant.
 
 - Les médias du dossier à trier sont affichés **un par un**, en **plein écran**, du plus
   ancien au plus récent, avec la progression (`12 / 340`) et la date de prise de vue
@@ -176,11 +176,27 @@ vrai OneDrive.
   pictogramme, et ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
   Ce sont les seuls libellés en anglais de l'application, à la demande expresse de
   l'utilisatrice : ces quatre mots lui sont plus familiers que leur traduction.
-- `Recover` et `Delete` sont inactifs jusqu'au Lot 7, mais gardent l'apparence des deux
-  autres : les estomper aurait fait croire à un défaut d'affichage plutôt qu'à une
-  fonction à venir.
-- À ce stade, seuls **retour** et **passer** agissent. Poubelle, annuler et les quatre
-  destinations demandent de déplacer des fichiers, ce qui viendra au Lot 7.
+- `Home`, `Delete` et `Skip` sont **toujours actifs**. Seul `Recover` peut être inactif :
+  il n'a rien à annuler tant qu'aucun média n'a été envoyé à la poubelle. Il est alors
+  estompé, ce qui est ici une information juste et non un défaut d'affichage, puisque les
+  trois autres ne le sont jamais.
+- **Supprimer ne supprime pas** : `Delete` déplace le média vers le dossier Poubelle
+  configuré, par un `PATCH /drives/{driveId}/items/{itemId}` avec
+  `{ "parentReference": { "id": "<idPoubelle>" } }`.
+- **Annuler** refait le même appel en sens inverse, vers le dossier à trier. TriPhoto garde
+  une **pile** des déplacements (le média et sa position dans la liste), ce qui permet
+  d'annuler plusieurs fois de suite et pas seulement le dernier geste. Après une annulation
+  on **revient sur le média restauré** : il est de nouveau à trier, l'avoir sauté n'aurait
+  pas de sens.
+- `Recover` reste proposé sur l'écran « Tri terminé » quand la pile n'est pas vide : sans
+  cela, le dernier média envoyé à la poubelle ne serait plus récupérable depuis TriPhoto.
+- Un déplacement qui échoue **ne perd rien** : la liste et la pile d'annulation restent en
+  place, un message s'affiche et le geste peut être refait.
+- Un dossier situé sur **un autre OneDrive** (dossier partagé) est refusé avec un message
+  clair : `PATCH parentReference` ne traverse pas les drives. Ce cas relève d'une copie,
+  qui reste hors du périmètre.
+- Les **quatre destinations** ne sont pas encore actives : les gestes de swipe viennent au
+  lot suivant.
 - Le dossier **Poubelle est désormais obligatoire** pour lancer le tri : sans lui, le
   bouton Supprimer n'aurait nulle part où envoyer les médias
 - Pour une photo, c'est la **miniature** Graph qui est affichée et non le fichier
