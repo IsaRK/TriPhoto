@@ -167,10 +167,11 @@ vrai OneDrive.
   décider sur un cadrage que le fichier n'a pas
 - Les **quatre destinations** sont posées par-dessus, au milieu de chaque bord, avec leur
   couleur, leur forme directionnelle et leur titre court
-- Les **quatre boutons des coins** : retour à l'accueil (haut gauche), annuler (haut
-  droite), poubelle (bas gauche), passer (bas droite). Les trois premiers portent
-  leur mot sous l'icône ; seule la poubelle reste une icône seule, universelle. Ils
-  ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
+- Les **quatre boutons des coins** : `Home` (haut gauche), `Recover` (haut droite),
+  `Delete` (bas gauche), `Skip` (bas droite). Ils portent leur mot seul, sans
+  pictogramme, et ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
+  Ce sont les seuls libellés en anglais de l'application, à la demande expresse de
+  l'utilisatrice : ces quatre mots lui sont plus familiers que leur traduction.
 - À ce stade, seuls **retour** et **passer** agissent. Poubelle, annuler et les quatre
   destinations demandent de déplacer des fichiers, ce qui viendra au Lot 7.
 - Le dossier **Poubelle est désormais obligatoire** pour lancer le tri : sans lui, le

@@ -182,7 +182,7 @@ describe('affichage des médias', () => {
     afficher()
     await screen.findByAltText('premiere.jpg')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Passer ce média' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
 
     expect(await screen.findByAltText('seconde.jpg')).toBeInTheDocument()
     expect(progression()).toBe('2 / 2')
@@ -280,23 +280,12 @@ describe('affichage des médias', () => {
     afficher()
     await screen.findByAltText('photo.jpg')
 
-    expect(screen.getByRole('link', { name: "Retour à l'accueil" })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Passer ce média' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Envoyer à la poubelle' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Annuler le dernier déplacement' })).toBeDisabled()
-  })
-
-  it('étiquette les trois boutons des coins qui ne sont pas la poubelle', async () => {
-    configurationComplete()
-    vi.stubGlobal('fetch', simulerGraph([elementGraph({ id: 'a' })]))
-    afficher()
-    await screen.findByAltText('photo.jpg')
-
-    // Le mot visible doit faire partie du libellé lu par un lecteur d'écran,
-    // sinon la commande vocale « Accueil » ne trouverait pas le bouton.
-    expect(screen.getByText('Accueil')).toBeInTheDocument()
-    expect(screen.getByText('Annuler')).toBeInTheDocument()
-    expect(screen.getByText('Passer')).toBeInTheDocument()
+    // Ces quatre boutons portent leur mot seul : le texte visible est donc aussi
+    // le libellé lu par un lecteur d'écran, sans aria-label à tenir à jour.
+    expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Skip' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled()
   })
 })
 
@@ -326,7 +315,7 @@ describe('fin et cas limites', () => {
     afficher()
     await screen.findByAltText('photo.jpg')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Passer ce média' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
 
     expect(await screen.findByText('Tri terminé')).toBeInTheDocument()
     expect(screen.getByText('1 média passé en revue.')).toBeInTheDocument()
@@ -337,7 +326,7 @@ describe('fin et cas limites', () => {
     vi.stubGlobal('fetch', simulerGraph([elementGraph({ id: 'a' })]))
     afficher()
     await screen.findByAltText('photo.jpg')
-    await userEvent.click(screen.getByRole('button', { name: 'Passer ce média' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
 
     await userEvent.click(await screen.findByRole('button', { name: 'Tout revoir' }))
 

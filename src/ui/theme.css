@@ -493,33 +493,24 @@ button {
 
 /* --- Les quatre boutons des coins --- */
 
-/* Les trois boutons porteurs d'un mot s'élargissent à leur texte ; la poubelle,
-   qui reste une icône seule, garde un cercle. */
+/* Les quatre boutons des coins portent leur mot seul, sans icône : un mot lu est
+   moins ambigu qu'un pictogramme, et les quatre restent ainsi identiques. */
 .tri__coin {
   position: absolute;
   display: flex;
-  min-width: 56px;
-  flex-direction: column;
+  min-width: 64px;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  padding: 10px 14px;
   border: 0;
-  border-radius: 22px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.92);
   color: var(--texte);
+  font-size: 0.85rem;
+  font-weight: 600;
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
-}
-
-.tri__coin-icone {
-  font-size: 1.35rem;
-}
-
-.tri__coin-mot {
-  margin-top: 3px;
-  font-size: 0.7rem;
-  font-weight: 600;
 }
 
 .tri__coin:disabled {
@@ -539,12 +530,6 @@ button {
 .tri__coin--poubelle {
   bottom: calc(var(--marge-bas) + 12px);
   left: calc(var(--marge-gauche) + 12px);
-  width: 52px;
-  min-width: 0;
-  height: 52px;
-  padding: 0;
-  border-radius: 50%;
-  font-size: 1.25rem;
 }
 
 .tri__coin--passer {

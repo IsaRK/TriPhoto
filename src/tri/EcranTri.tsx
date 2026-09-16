@@ -179,44 +179,24 @@ export default function EcranTri() {
         <span className="tri__date">{formaterDatePriseDeVue(media.priseLe)}</span>
       </p>
 
-      <Link className="tri__coin tri__coin--retour" to="/" aria-label="Retour à l'accueil">
-        <span className="tri__coin-icone" aria-hidden="true">
-          ‹
-        </span>
-        <span className="tri__coin-mot">Accueil</span>
+      <Link className="tri__coin tri__coin--retour" to="/">
+        Home
       </Link>
 
-      <button
-        type="button"
-        className="tri__coin tri__coin--annuler"
-        disabled
-        aria-label="Annuler le dernier déplacement"
-      >
-        <span className="tri__coin-icone" aria-hidden="true">
-          ↺
-        </span>
-        <span className="tri__coin-mot">Annuler</span>
+      <button type="button" className="tri__coin tri__coin--annuler" disabled>
+        Recover
       </button>
 
-      <button
-        type="button"
-        className="tri__coin tri__coin--poubelle"
-        disabled
-        aria-label="Envoyer à la poubelle"
-      >
-        🗑
+      <button type="button" className="tri__coin tri__coin--poubelle" disabled>
+        Delete
       </button>
 
       <button
         type="button"
         className="tri__coin tri__coin--passer"
         onClick={() => setIndex(index + 1)}
-        aria-label="Passer ce média"
       >
-        <span className="tri__coin-icone" aria-hidden="true">
-          ›
-        </span>
-        <span className="tri__coin-mot">Passer</span>
+        Skip
       </button>
 
       {destinations.map((destination) => (
