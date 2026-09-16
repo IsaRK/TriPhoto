@@ -87,8 +87,32 @@ describe('bloc compte Microsoft', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('déconnecte le compte à la demande', async () => {
+  it('affiche l’adresse du compte à côté du nom', async () => {
     connecterUnCompte()
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(reponseGraph({ displayName: 'Alice Martin', mail: 'alice@outlook.com' })),
+    )
+
+    render(<CompteMicrosoft />)
+
+    expect(await screen.findByText('alice@outlook.com')).toBeInTheDocument()
+  })
+
+  // Graph peut ne renvoyer aucune adresse ; MSAL, lui, connaît toujours celle
+  // qui a servi à se connecter.
+  it('se rabat sur l’adresse du compte MSAL quand Graph n’en renvoie pas', async () => {
+    connecterUnCompte()
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reponseGraph({ displayName: 'Alice Martin' })))
+
+    render(<CompteMicrosoft />)
+
+    expect(await screen.findByText('alice@outlook.com')).toBeInTheDocument()
+  })
+
+  it('déconnecte le compte à la demande', async () => {    connecterUnCompte()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reponseGraph({ displayName: 'Alice Martin' })))
 
     render(<CompteMicrosoft />)

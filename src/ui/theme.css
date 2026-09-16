@@ -188,6 +188,17 @@ button {
   text-align: center;
 }
 
+/* L'adresse peut être longue : on la coupe plutôt que de la laisser élargir
+   l'écran. La marge négative annule en partie le `gap` de `.pile`, pour qu'elle
+   se lise comme un sous-titre du nom et non comme un bloc séparé. */
+.compte__adresse {
+  margin-top: -4px;
+  color: var(--texte-doux);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
 /* --------------- Explorateur de dossiers OneDrive --------------- */
 
 .explorateur {
@@ -475,8 +486,10 @@ button {
   white-space: nowrap;
 }
 
+/* Pas d'estompage des boutons désactivés : Delete et Recover attendent le Lot 7,
+   mais les quatre boutons forment une famille et doivent se ressembler. */
 .tri__coin:disabled {
-  opacity: 0.35;
+  cursor: default;
 }
 
 .tri__coin--retour {

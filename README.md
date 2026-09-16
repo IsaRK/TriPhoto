@@ -77,8 +77,12 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 - Scopes demandés : `User.Read`, `Files.ReadWrite` et `Files.ReadWrite.All`
   (ce dernier est nécessaire aux dossiers partagés, voir la section dédiée)
 - Flux par **redirection** (et non popup), plus fiable sur navigateur mobile
-- Appel Microsoft Graph `GET /me` en REST, qui affiche le nom du compte connecté et
-  prouve que le jeton d'accès fonctionne
+- Appel Microsoft Graph `GET /me` en REST, qui affiche le nom **et l'adresse** du compte
+  connecté et prouve que le jeton d'accès fonctionne. Les champs sont demandés
+  explicitement (`$select=displayName,givenName,mail,userPrincipalName`) car sur un
+  compte Microsoft personnel `mail` est souvent vide alors que `userPrincipalName`
+  porte l'adresse. Si Graph n'en renvoie aucune, on se rabat sur le `username` du
+  compte MSAL, qui est exactement l'adresse saisie à la connexion.
 - Message explicite si `VITE_MSAL_CLIENT_ID` est absent
 - Une seule instance MSAL pour toute la page, et aucun clignotement entre
   « déconnecté » et « connecté » au démarrage
@@ -172,6 +176,9 @@ vrai OneDrive.
   pictogramme, et ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
   Ce sont les seuls libellés en anglais de l'application, à la demande expresse de
   l'utilisatrice : ces quatre mots lui sont plus familiers que leur traduction.
+- `Recover` et `Delete` sont inactifs jusqu'au Lot 7, mais gardent l'apparence des deux
+  autres : les estomper aurait fait croire à un défaut d'affichage plutôt qu'à une
+  fonction à venir.
 - À ce stade, seuls **retour** et **passer** agissent. Poubelle, annuler et les quatre
   destinations demandent de déplacer des fichiers, ce qui viendra au Lot 7.
 - Le dossier **Poubelle est désormais obligatoire** pour lancer le tri : sans lui, le

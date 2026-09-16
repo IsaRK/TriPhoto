@@ -20,12 +20,14 @@ describe('appel Graph /me', () => {
 
     await recupererProfil('jeton-de-test')
 
-    expect(fetchSimule).toHaveBeenCalledWith('https://graph.microsoft.com/v1.0/me', {
-      headers: { Authorization: 'Bearer jeton-de-test' },
-    })
+    const [url, options] = fetchSimule.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe(
+      'https://graph.microsoft.com/v1.0/me?$select=displayName,givenName,mail,userPrincipalName',
+    )
+    expect(options.headers).toEqual({ Authorization: 'Bearer jeton-de-test' })
   })
 
-  it('retourne le nom du compte', async () => {
+  it('retourne le nom et l’adresse du compte', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(reponse({ displayName: 'Alice Martin', mail: 'alice@outlook.com' })),
@@ -33,7 +35,25 @@ describe('appel Graph /me', () => {
 
     const profil = await recupererProfil('jeton-de-test')
 
-    expect(profil).toEqual({ nom: 'Alice Martin' })
+    expect(profil).toEqual({ nom: 'Alice Martin', email: 'alice@outlook.com' })
+  })
+
+  // Cas très courant des comptes Microsoft personnels : Graph laisse `mail` vide
+  // et ne renseigne que `userPrincipalName`. Sans ce repli, aucune adresse ne
+  // s'afficherait sur l'écran d'accueil.
+  it('prend userPrincipalName quand mail est vide', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          reponse({ displayName: 'Alice', mail: null, userPrincipalName: 'alice@live.fr' }),
+        ),
+    )
+
+    const profil = await recupererProfil('jeton-de-test')
+
+    expect(profil.email).toBe('alice@live.fr')
   })
 
   it('se rabat sur givenName quand displayName est absent', async () => {
@@ -44,7 +64,7 @@ describe('appel Graph /me', () => {
 
     const profil = await recupererProfil('jeton-de-test')
 
-    expect(profil).toEqual({ nom: 'Alice' })
+    expect(profil).toEqual({ nom: 'Alice', email: 'alice@live.fr' })
   })
 
   it('se rabat sur un libellé générique quand Graph ne renvoie aucun nom', async () => {
@@ -52,7 +72,7 @@ describe('appel Graph /me', () => {
 
     const profil = await recupererProfil('jeton-de-test')
 
-    expect(profil).toEqual({ nom: 'Compte Microsoft' })
+    expect(profil).toEqual({ nom: 'Compte Microsoft', email: null })
   })
 
   it('échoue avec le code HTTP quand Graph refuse la requête', async () => {
