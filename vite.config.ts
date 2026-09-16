@@ -2,6 +2,8 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
 // defineConfig vient de vitest/config (et non de vite) pour que la section `test` soit typée.
 import { defineConfig } from 'vitest/config'
+import { VitePWA } from 'vite-plugin-pwa'
+import { OPTIONS_PWA } from './src/pwa/configurationPwa.ts'
 
 // GitHub Pages publie le site sous https://<compte>.github.io/TriPhoto/ et non à la
 // racine du domaine. Les liens vers les fichiers construits doivent donc commencer par
@@ -18,7 +20,10 @@ const BASE_EN_PRODUCTION = '/TriPhoto/'
 // refuser la connexion Microsoft.
 export default defineConfig(({ command, mode }) => ({
   base: command === 'build' ? BASE_EN_PRODUCTION : '/',
-  plugins: mode === 'mobile' ? [react(), basicSsl()] : [react()],
+  plugins:
+    mode === 'mobile'
+      ? [react(), basicSsl(), VitePWA(OPTIONS_PWA)]
+      : [react(), VitePWA(OPTIONS_PWA)],
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],

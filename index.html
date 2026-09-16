@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#405885" />
     <meta name="description" content="TriPhoto — trier ses photos et vidéos OneDrive d'un simple geste." />
+    <!-- Icône de l'onglet. Le SVG suffit aux navigateurs de bureau. -->
+    <link rel="icon" type="image/svg+xml" href="/icone.svg" />
+    <!--
+      iOS ne lit pas les icônes du manifest pour « Ajouter à l'écran d'accueil » :
+      sans cette ligne, le raccourci porterait une capture de la page. Il lui faut
+      un PNG, un SVG serait ignoré.
+    -->
+    <link rel="apple-touch-icon" href="/icone-192.png" />
+    <!-- Lance le raccourci iOS en plein écran, sans la barre d'adresse de Safari. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="TriPhoto" />
     <title>TriPhoto</title>
   </head>
   <body>

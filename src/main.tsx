@@ -3,12 +3,15 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import DemarrageAuth from './auth/DemarrageAuth'
+import { enregistrerServiceWorker } from './pwa/serviceWorker'
 import './ui/theme.css'
 
 const racine = document.getElementById('root')
 if (!racine) {
   throw new Error("L'élément #root est introuvable dans index.html")
 }
+
+enregistrerServiceWorker()
 
 createRoot(racine).render(
   <StrictMode>
