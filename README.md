@@ -153,6 +153,24 @@ l'écran de tri viendra au lot suivant.
 - Les miniatures sont demandées avec `$expand=thumbnails` — c'est une relation Graph
   et non un champ, elles ne viennent pas toutes seules
 
+### Titres courts et formes directionnelles
+
+Retouche d'interface de l'écran de configuration, sans nouvelle fonctionnalité Graph :
+
+- Chaque destination porte un **titre court** (10 caractères au maximum), saisi juste
+  sous le dossier choisi. Il est repris tel quel pendant le tri, pour se rappeler quelle
+  direction mène à quel dossier sans relire un chemin entier.
+- Le titre est proposé d'office à partir du nom du dossier. Il n'est ramené à cette
+  valeur par défaut que si on quitte le champ en l'ayant laissé vide — pendant la frappe,
+  le champ peut rester vide, sinon il serait impossible de tout effacer pour retaper.
+- Une configuration enregistrée avant l'arrivée des titres n'en a pas : elle est
+  **complétée** à la relecture plutôt que rejetée, pour ne pas faire perdre ses dossiers.
+- Les pastilles de couleur ne sont plus des ronds mais des **formes qui pointent vers
+  leur direction**, sur l'écran de configuration comme sur la boussole d'accueil.
+- Le titre « TriPhoto » est remplacé par un logo (`src/ui/Logo.tsx`) : un appareil photo
+  entouré des quatre flèches de direction. Les couleurs y sont lues dans
+  `src/tri/directions.ts`, jamais réécrites en dur, pour que le logo suive la palette.
+
 ## Les dossiers partagés
 
 Cas visé : **la source est chez vous, les destinations sont des dossiers partagés**

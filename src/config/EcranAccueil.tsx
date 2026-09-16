@@ -3,22 +3,30 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CompteMicrosoft from '../auth/CompteMicrosoft'
 import { DIRECTIONS } from '../tri/directions'
-import type { Configuration, DossierConfigure, Emplacement } from './configuration'
+import Logo from '../ui/Logo'
+import type { Configuration, DossierChoisi, DossierConfigure, Emplacement } from './configuration'
 import {
   compterDestinations,
   definirDossier,
+  definirTitre,
   ecrireConfiguration,
   emplacementDejaUtilise,
   lireConfiguration,
+  normaliserTitre,
   peutCommencerLeTri,
   retirerDossier,
+  titreParDefaut,
+  TITRE_LONGUEUR_MAX,
 } from './configuration'
 import ExplorateurDossiers from './ExplorateurDossiers'
 
 type LigneEmplacement = {
   emplacement: Emplacement
   libelle: string
-  /** `null` pour les emplacements qui ne correspondent pas à une direction. */
+  /**
+   * `null` pour les emplacements qui ne correspondent pas à une direction.
+   * Une couleur signale donc aussi les quatre lignes qui portent un titre court.
+   */
   couleur: string | null
 }
 
@@ -60,16 +68,20 @@ export default function EcranAccueil() {
     setEmplacementEnCours(emplacement)
   }
 
-  const choisirDossier = (dossier: DossierConfigure) => {
+  const choisirDossier = (choisi: DossierChoisi) => {
     if (emplacementEnCours === null) {
       return
     }
-    const occupant = emplacementDejaUtilise(configuration, emplacementEnCours, dossier)
+    const occupant = emplacementDejaUtilise(configuration, emplacementEnCours, choisi)
     if (occupant !== null) {
       setAvertissement(
-        `« ${dossier.nom} » est déjà utilisé pour « ${libelleDe(occupant)} ». Choisissez un autre dossier.`,
+        `« ${choisi.nom} » est déjà utilisé pour « ${libelleDe(occupant)} ». Choisissez un autre dossier.`,
       )
       return
+    }
+    const dossier: DossierConfigure = {
+      ...choisi,
+      titre: titreParDefaut(choisi.nom),
     }
     enregistrer(definirDossier(configuration, emplacementEnCours, dossier))
     setEmplacementEnCours(null)
@@ -77,6 +89,12 @@ export default function EcranAccueil() {
 
   const retirer = (emplacement: Emplacement) =>
     enregistrer(retirerDossier(configuration, emplacement))
+
+  const renommer = (emplacement: Emplacement, titre: string) =>
+    enregistrer(definirTitre(configuration, emplacement, titre))
+
+  const finirRenommage = (emplacement: Emplacement) =>
+    enregistrer(normaliserTitre(configuration, emplacement))
 
   if (estConnecte && emplacementEnCours !== null) {
     return (
@@ -108,7 +126,9 @@ export default function EcranAccueil() {
   return (
     <main className="ecran">
       <header>
-        <h1 className="titre">TriPhoto</h1>
+        <h1 className="titre-logo">
+          <Logo />
+        </h1>
       </header>
 
       <div className="contenu">
@@ -127,6 +147,8 @@ export default function EcranAccueil() {
                 dossier={configuration[ligne.emplacement]}
                 onOuvrir={() => ouvrirExplorateur(ligne.emplacement)}
                 onRetirer={() => retirer(ligne.emplacement)}
+                onRenommer={(titre) => renommer(ligne.emplacement, titre)}
+                onFinirRenommage={() => finirRenommage(ligne.emplacement)}
               />
             ))}
           </ul>
@@ -146,8 +168,8 @@ export default function EcranAccueil() {
             </ul>
 
             <p className="note">
-              Chaque couleur correspond à un dossier de destination. Connectez-vous pour choisir
-              vos dossiers.
+              Chaque couleur correspond à un dossier de destination. Connectez-vous pour choisir vos
+              dossiers.
             </p>
           </>
         )}
@@ -178,37 +200,61 @@ function LigneDossier({
   dossier,
   onOuvrir,
   onRetirer,
+  onRenommer,
+  onFinirRenommage,
 }: {
   ligne: LigneEmplacement
   dossier: DossierConfigure | null
   onOuvrir: () => void
   onRetirer: () => void
+  onRenommer: (titre: string) => void
+  onFinirRenommage: () => void
 }) {
   return (
     <li className="emplacement">
-      <button type="button" className="emplacement__choix" onClick={onOuvrir}>
-        <span
-          className={ligne.couleur === null ? 'emplacement__puce' : 'emplacement__pastille'}
-          style={ligne.couleur === null ? undefined : { backgroundColor: ligne.couleur }}
-          aria-hidden="true"
-        />
-        <span className="emplacement__textes">
-          <span className="emplacement__libelle">{ligne.libelle}</span>
-          <span className="emplacement__dossier">
-            {dossier === null ? 'Aucun dossier' : dossier.chemin}
+      <div className="emplacement__ligne">
+        <button type="button" className="emplacement__choix" onClick={onOuvrir}>
+          <span
+            className={
+              ligne.couleur === null
+                ? 'emplacement__puce'
+                : `emplacement__pastille emplacement__pastille--${ligne.emplacement}`
+            }
+            style={ligne.couleur === null ? undefined : { backgroundColor: ligne.couleur }}
+            aria-hidden="true"
+          />
+          <span className="emplacement__textes">
+            <span className="emplacement__libelle">{ligne.libelle}</span>
+            <span className="emplacement__dossier">
+              {dossier === null ? 'Aucun dossier' : dossier.chemin}
+            </span>
           </span>
-        </span>
-      </button>
-      {dossier === null ? null : (
-        <button
-          type="button"
-          className="emplacement__retirer"
-          onClick={onRetirer}
-          aria-label={`Retirer le dossier de « ${ligne.libelle} »`}
-        >
-          ✕
         </button>
-      )}
+        {dossier === null ? null : (
+          <button
+            type="button"
+            className="emplacement__retirer"
+            onClick={onRetirer}
+            aria-label={`Retirer le dossier de « ${ligne.libelle} »`}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {dossier !== null && ligne.couleur !== null ? (
+        <label className="emplacement__titre">
+          <span className="emplacement__titre-libelle">Titre court</span>
+          <input
+            type="text"
+            value={dossier.titre}
+            maxLength={TITRE_LONGUEUR_MAX}
+            aria-label={`Titre court de « ${ligne.libelle} »`}
+            onChange={(evenement) => onRenommer(evenement.target.value)}
+            onBlur={onFinirRenommage}
+          />
+        </label>
+      ) : null}
     </li>
   )
 }
@@ -219,12 +265,13 @@ function libelleDe(emplacement: Emplacement): string {
 }
 
 function decrireAvancement(configuration: Configuration): string {
-  if (configuration.source === null) {
-    return 'Choisissez d’abord le dossier à trier.'
-  }
   const destinations = compterDestinations(configuration)
   if (destinations === 0) {
     return 'Choisissez au moins une destination.'
+  }
+  // Sans cette ligne, « Commencer le tri » resterait grisé sans rien expliquer.
+  if (configuration.source === null) {
+    return 'Il manque le dossier à trier.'
   }
   const accord = destinations === 1 ? 'destination choisie' : 'destinations choisies'
   const poubelle = configuration.poubelle === null ? ' La poubelle reste à choisir.' : ''
