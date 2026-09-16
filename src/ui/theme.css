@@ -543,9 +543,11 @@ button {
   align-items: center;
   justify-content: center;
   border: 0;
+  border-radius: 999px;
   color: #ffffff;
   font-size: 0.8rem;
   font-weight: 600;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
@@ -555,44 +557,44 @@ button {
   opacity: 1;
 }
 
-/* La pointe est fixée en pixels et non en pourcentage : exprimée en pourcentage
-   elle s'allongerait avec le titre, et un titre de dix caractères donnerait une
-   flèche deux fois plus longue que celle d'un titre de quatre. */
+/* La direction n'est plus donnée par une flèche découpée mais par la forme même
+   de la pastille : le côté vers lequel on envoie la photo est bombé, le côté
+   opposé presque droit. C'est plus rond, et surtout bien plus compact — la
+   flèche imposait une pointe et une hauteur fixe qui mangeaient la photo.
+   Aucune taille n'est imposée : le bouton fait exactement la largeur de son
+   titre, seule la police est conservée. */
 .tri__bord--gauche,
 .tri__bord--droite {
   top: 50%;
-  height: 56px;
   transform: translateY(-50%);
 }
 
 .tri__bord--gauche {
-  left: var(--marge-gauche);
-  padding: 0 14px 0 30px;
-  clip-path: polygon(0 50%, 18px 0, 100% 0, 100% 100%, 18px 100%);
+  left: calc(var(--marge-gauche) + 6px);
+  padding: 6px 10px 6px 14px;
+  border-radius: 999px 8px 8px 999px;
 }
 
 .tri__bord--droite {
-  right: var(--marge-droite);
-  padding: 0 30px 0 14px;
-  clip-path: polygon(100% 50%, calc(100% - 18px) 100%, 0 100%, 0 0, calc(100% - 18px) 0);
+  right: calc(var(--marge-droite) + 6px);
+  padding: 6px 14px 6px 10px;
+  border-radius: 8px 999px 999px 8px;
 }
 
 .tri__bord--haut,
 .tri__bord--bas {
   left: 50%;
-  min-width: 92px;
-  height: 64px;
   transform: translateX(-50%);
 }
 
 .tri__bord--haut {
-  top: var(--marge-haut);
-  padding: 20px 16px 0;
-  clip-path: polygon(50% 0, 100% 18px, 100% 100%, 0 100%, 0 18px);
+  top: calc(var(--marge-haut) + 6px);
+  padding: 8px 12px 5px;
+  border-radius: 999px 999px 8px 8px;
 }
 
 .tri__bord--bas {
-  bottom: var(--marge-bas);
-  padding: 0 16px 20px;
-  clip-path: polygon(50% 100%, 0 calc(100% - 18px), 0 0, 100% 0, 100% calc(100% - 18px));
+  bottom: calc(var(--marge-bas) + 6px);
+  padding: 5px 12px 8px;
+  border-radius: 8px 8px 999px 999px;
 }

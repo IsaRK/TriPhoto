@@ -170,7 +170,10 @@ le sujet du lot suivant.
 - La photo est affichée entière (jamais rognée) sur un fond sombre : rogner ferait
   décider sur un cadrage que le fichier n'a pas
 - Les **quatre destinations** sont posées par-dessus, au milieu de chaque bord, avec leur
-  couleur, leur forme directionnelle et leur titre court
+  couleur et leur titre court. Ce sont de petites pastilles arrondies, aussi compactes que
+  leur titre le permet : la direction se lit à la forme, bombée du côté vers lequel on
+  envoie la photo et presque droite de l'autre. Une flèche découpée, comme dans une
+  première version, imposait une pointe et une hauteur fixe qui mangeaient l'image.
 - Les **quatre boutons des coins** : `Home` (haut gauche), `Recover` (haut droite),
   `Delete` (bas gauche), `Skip` (bas droite). Ils portent leur mot seul, sans
   pictogramme, et ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
