@@ -13,6 +13,8 @@ import {
   formaterProgression,
   urlAffichage,
 } from './affichage'
+import CarteSwipable from './CarteSwipable'
+import type { DirectionSwipe } from './directions'
 
 type EtatChargement =
   | { statut: 'chargement' }
@@ -20,7 +22,7 @@ type EtatChargement =
   | { statut: 'sessionExpiree' }
   | { statut: 'erreur'; message: string }
 
-/** Le dernier média envoyé à la poubelle, gardé pour pouvoir le récupérer. */
+/** Le dernier média déplacé, gardé pour pouvoir le récupérer. */
 type Deplacement = {
   media: MediaOneDrive
   /** Position du média dans la liste, pour le réafficher après annulation. */
@@ -31,9 +33,10 @@ type Deplacement = {
  * Écran de tri.
  *
  * On affiche les médias du dossier à trier, un par un, du plus ancien au plus
- * récent. « Delete » envoie le média vers le dossier Poubelle, « Recover » le
- * ramène dans le dossier à trier, « Skip » passe au suivant sans rien déplacer.
- * Les gestes de swipe vers les quatre destinations arrivent au lot suivant.
+ * récent. On swipe le média vers l'un des quatre dossiers de destination, ou
+ * l'on utilise les boutons des coins : « Delete » l'envoie vers la Poubelle,
+ * « Cancel » ramène le dernier média déplacé, « Skip » passe au suivant sans
+ * rien déplacer.
  */
 export default function EcranTri() {
   const { instance, accounts } = useMsal()
@@ -206,7 +209,7 @@ export default function EcranTri() {
         */}
         {dernierDeplacement === null ? null : (
           <button type="button" className="action" onClick={annulerDernierDeplacement}>
-            Recover
+            Cancel
           </button>
         )}
         <button type="button" className="action" onClick={() => setIndex(0)}>
@@ -239,6 +242,24 @@ export default function EcranTri() {
     })
   }
 
+  /**
+   * Range le média dans le dossier d'une direction. Swiper vers une direction
+   * sans dossier ne fait rien : il n'y a nulle part où envoyer la photo.
+   */
+  const envoyerVersDirection = (direction: DirectionSwipe) => {
+    if (deplacementEnCours) {
+      return
+    }
+    const dossier = configuration[direction]
+    if (dossier === null) {
+      return
+    }
+    executerDeplacement(media, dossier, () => {
+      setDernierDeplacement({ media, index })
+      setIndex(index + 1)
+    })
+  }
+
   const passer = () => {
     if (deplacementEnCours) {
       return
@@ -249,7 +270,15 @@ export default function EcranTri() {
 
   return (
     <main className="tri">
-      <CarteMedia media={media} />
+      <CarteSwipable
+        destinations={destinations}
+        actif={!deplacementEnCours}
+        onSwipe={envoyerVersDirection}
+      >
+        <CarteMedia media={media} />
+      </CarteSwipable>
+
+      <RaccourcisClavier onDirection={envoyerVersDirection} />
 
       {/*
         Le média suivant est demandé au navigateur dès maintenant, hors de
@@ -274,7 +303,7 @@ export default function EcranTri() {
       </Link>
 
       {/*
-        Seul « Recover » peut être inactif : il n'a rien à annuler tant qu'aucun
+        Seul « Cancel » peut être inactif : il n'a rien à annuler tant qu'aucun
         média n'a été envoyé à la poubelle.
       */}
       <button
@@ -283,7 +312,7 @@ export default function EcranTri() {
         onClick={annulerDernierDeplacement}
         disabled={dernierDeplacement === null}
       >
-        Recover
+        Cancel
       </button>
 
       <button type="button" className="tri__coin tri__coin--poubelle" onClick={envoyerALaPoubelle}>
@@ -300,13 +329,48 @@ export default function EcranTri() {
           type="button"
           className={`tri__bord tri__bord--${destination.direction}`}
           style={{ backgroundColor: destination.couleur }}
-          disabled
+          onClick={() => envoyerVersDirection(destination.direction)}
         >
           {destination.titre}
         </button>
       ))}
     </main>
   )
+}
+
+/** Touche du clavier à laquelle répond chaque direction. */
+const DIRECTION_PAR_TOUCHE: Record<string, DirectionSwipe> = {
+  ArrowLeft: 'gauche',
+  ArrowRight: 'droite',
+  ArrowUp: 'haut',
+  ArrowDown: 'bas',
+}
+
+/**
+ * Branche les flèches du clavier sur les quatre directions. Sert surtout à
+ * essayer le tri sur un ordinateur, où l'on n'a pas de doigt à faire glisser.
+ *
+ * C'est un composant plutôt qu'un `useEffect` dans l'écran de tri : l'écran
+ * rend plusieurs écrans de message avant d'arriver à la carte, et un hook
+ * placé après ces retours anticipés serait interdit.
+ */
+function RaccourcisClavier({ onDirection }: { onDirection: (direction: DirectionSwipe) => void }) {
+  useEffect(() => {
+    const surTouche = (evenement: KeyboardEvent) => {
+      const direction = DIRECTION_PAR_TOUCHE[evenement.key]
+      if (direction === undefined) {
+        return
+      }
+      // Sans cela, les flèches feraient aussi défiler la page.
+      evenement.preventDefault()
+      onDirection(direction)
+    }
+
+    window.addEventListener('keydown', surTouche)
+    return () => window.removeEventListener('keydown', surTouche)
+  }, [onDirection])
+
+  return null
 }
 
 function CarteMedia({ media }: { media: MediaOneDrive }) {

@@ -2,7 +2,7 @@
  * Déplacement d'un fichier d'un dossier OneDrive à un autre, via Microsoft Graph.
  *
  * TriPhoto ne supprime jamais rien : « Delete » déplace le média vers le dossier
- * Poubelle choisi à la configuration, et « Recover » le ramène dans le dossier
+ * Poubelle choisi à la configuration, et « Cancel » le ramène dans le dossier
  * à trier. Les deux opérations sont le même appel, avec un parent différent.
  */
 

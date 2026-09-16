@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { InteractionRequiredAuthError } from '@azure/msal-browser'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -326,7 +326,7 @@ describe('affichage des médias', () => {
     expect(screen.getByRole('button', { name: 'Skip' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled()
     // Rien n'a encore été supprimé : il n'y a rien à annuler.
-    expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
   })
 })
 
@@ -350,7 +350,7 @@ describe('poubelle et annulation', () => {
     expect(deplacements[0].corps.parentReference.id).toBe('Corbeille')
   })
 
-  it('active Recover après une suppression', async () => {
+  it('active Cancel après une suppression', async () => {
     configurationComplete()
     vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a' })]))
     afficher()
@@ -358,7 +358,7 @@ describe('poubelle et annulation', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled())
   })
 
   it('ramène le média dans le dossier à trier et revient dessus', async () => {
@@ -373,13 +373,13 @@ describe('poubelle et annulation', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await screen.findByAltText('b.jpg')
-    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
     const deplacements = deplacementsDemandes(fetchSimule)
     expect(deplacements[1].corps.parentReference.id).toBe('Pellicule')
     // Plus rien à récupérer : la suppression a bien été défaite.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled())
   })
 
   it('n’annule que la dernière suppression, sans remonter à la précédente', async () => {
@@ -400,11 +400,11 @@ describe('poubelle et annulation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await screen.findByAltText('c.jpg')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     // On récupère « b », la dernière supprimée, et on s'arrête là : « a » est acquis.
     expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled())
   })
 
   it('garde le média récupérable quand un déplacement échoue', async () => {
@@ -425,14 +425,14 @@ describe('poubelle et annulation', () => {
     await screen.findByAltText('a.jpg')
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled())
 
     echoue = true
-    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(await screen.findByText(/Le déplacement a échoué/)).toBeInTheDocument()
     // L'échec ne doit pas oublier le média : l'annulation reste possible.
-    expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
   })
 
   it('refuse un déplacement vers un autre OneDrive avec un message lisible', async () => {
@@ -454,6 +454,234 @@ describe('poubelle et annulation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText(/autre OneDrive/)).toBeInTheDocument()
+  })
+})
+
+describe('swipe et clavier', () => {
+  /** Configuration avec les quatre directions, pour éprouver chaque sens. */
+  function quatreDirections() {
+    enregistrer({
+      source: dossier('Pellicule'),
+      poubelle: dossier('Corbeille'),
+      gauche: dossier('Vacances'),
+      droite: dossier('Famille'),
+      haut: dossier('Paysages'),
+      bas: dossier('Papiers'),
+    })
+  }
+
+  /**
+   * jsdom ne connaît pas `PointerEvent` : `fireEvent.pointerDown` produit alors
+   * un événement sans `clientX` ni `clientY`, et le geste serait toujours vu
+   * comme immobile. On construit donc un `MouseEvent`, qui porte bien les
+   * coordonnées, avec le type d'un événement de pointeur.
+   */
+  function evenementPointeur(type: string, x: number, y: number) {
+    const evenement = new MouseEvent(type, { bubbles: true, clientX: x, clientY: y })
+    Object.defineProperty(evenement, 'pointerId', { value: 1 })
+    return evenement
+  }
+
+  function carteAffichee() {
+    return document.querySelector('.tri__carte') as HTMLElement
+  }
+
+  /** Fait glisser la carte de (dx, dy) pixels, puis relâche. */
+  function glisser(dx: number, dy: number) {
+    const carte = carteAffichee()
+    fireEvent(carte, evenementPointeur('pointerdown', 200, 400))
+    fireEvent(carte, evenementPointeur('pointermove', 200 + dx, 400 + dy))
+    fireEvent(carte, evenementPointeur('pointerup', 200 + dx, 400 + dy))
+  }
+
+  /**
+   * Laisse les promesses en attente se terminer. Indispensable pour affirmer
+   * qu'un déplacement n'a *pas* eu lieu : sans cette pause, l'assertion passe
+   * avant même que la requête ait eu le temps de partir, et le test resterait
+   * vert quel que soit le comportement.
+   */
+  async function laisserPartirLesRequetes() {
+    await act(async () => {
+      await new Promise((resoudre) => setTimeout(resoudre, 0))
+    })
+  }
+
+  it('range le média dans le dossier de gauche quand on swipe à gauche', async () => {
+    quatreDirections()
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    glisser(-150, 0)
+
+    expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
+    const deplacements = deplacementsDemandes(fetchSimule)
+    expect(deplacements).toHaveLength(1)
+    expect(deplacements[0].url).toContain('/items/a')
+    expect(deplacements[0].corps.parentReference.id).toBe('Vacances')
+  })
+
+  it('choisit le dossier du haut quand on swipe vers le haut', async () => {
+    quatreDirections()
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    glisser(0, -150)
+
+    await screen.findByAltText('b.jpg')
+    expect(deplacementsDemandes(fetchSimule)[0].corps.parentReference.id).toBe('Paysages')
+  })
+
+  it('laisse le média en place quand le geste est trop court', async () => {
+    quatreDirections()
+    const fetchSimule = simulerGraphEtDeplacements([elementGraph({ id: 'a', name: 'a.jpg' })])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    glisser(-40, 0)
+    await laisserPartirLesRequetes()
+
+    expect(screen.getByAltText('a.jpg')).toBeInTheDocument()
+    expect(deplacementsDemandes(fetchSimule)).toHaveLength(0)
+  })
+
+  it('ne fait rien quand on swipe vers une direction sans dossier', async () => {
+    // Seule la gauche est configurée : le geste vers la droite n'a pas de cible.
+    configurationComplete()
+    const fetchSimule = simulerGraphEtDeplacements([elementGraph({ id: 'a', name: 'a.jpg' })])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    glisser(150, 0)
+    await laisserPartirLesRequetes()
+
+    expect(screen.getByAltText('a.jpg')).toBeInTheDocument()
+    expect(deplacementsDemandes(fetchSimule)).toHaveLength(0)
+  })
+
+  it("n'affiche aucun bouton pour une direction sans dossier", async () => {
+    // Seule la gauche est configurée : les trois autres bords restent nus,
+    // plutôt que d'afficher une pastille qui ne ferait rien.
+    configurationComplete()
+    vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a', name: 'a.jpg' })]))
+    const { container } = afficher()
+    await screen.findByAltText('a.jpg')
+
+    expect(container.querySelectorAll('.tri__bord')).toHaveLength(1)
+    expect(container.querySelector('.tri__bord--gauche')).not.toBeNull()
+    expect(container.querySelector('.tri__bord--droite')).toBeNull()
+  })
+
+  it('annonce le dossier visé pendant le geste, une fois le seuil franchi', async () => {
+    quatreDirections()
+    vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a', name: 'a.jpg' })]))
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    // On lit l'annonce posée sur la photo, et non la pastille du bord, qui
+    // porte le même titre.
+    const annonce = () => document.querySelector('.tri__cible-titre')?.textContent ?? null
+
+    const carte = carteAffichee()
+    fireEvent(carte, evenementPointeur('pointerdown', 200, 400))
+    fireEvent(carte, evenementPointeur('pointermove', 160, 400))
+
+    expect(annonce()).toBeNull()
+
+    fireEvent(carte, evenementPointeur('pointermove', 50, 400))
+
+    expect(annonce()).toBe('Vacances')
+  })
+
+  it('remet la carte droite quand le geste est abandonné', async () => {
+    quatreDirections()
+    vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a', name: 'a.jpg' })]))
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    const carte = carteAffichee()
+    fireEvent(carte, evenementPointeur('pointerdown', 200, 400))
+    fireEvent(carte, evenementPointeur('pointermove', 120, 400))
+    expect(carte.style.transform).not.toContain('translate(0px, 0px)')
+
+    fireEvent(carte, evenementPointeur('pointercancel', 120, 400))
+
+    expect(carte.style.transform).toContain('translate(0px, 0px)')
+  })
+
+  it('range le média avec les flèches du clavier', async () => {
+    quatreDirections()
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    await userEvent.keyboard('{ArrowDown}')
+
+    await screen.findByAltText('b.jpg')
+    expect(deplacementsDemandes(fetchSimule)[0].corps.parentReference.id).toBe('Papiers')
+  })
+
+  it('ignore une flèche dont la direction n’a pas de dossier', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphEtDeplacements([elementGraph({ id: 'a', name: 'a.jpg' })])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    await userEvent.keyboard('{ArrowUp}')
+    await laisserPartirLesRequetes()
+
+    expect(screen.getByAltText('a.jpg')).toBeInTheDocument()
+    expect(deplacementsDemandes(fetchSimule)).toHaveLength(0)
+  })
+
+  it('permet aussi de cliquer la pastille d’une direction', async () => {
+    quatreDirections()
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Famille' }))
+
+    await screen.findByAltText('b.jpg')
+    expect(deplacementsDemandes(fetchSimule)[0].corps.parentReference.id).toBe('Famille')
+  })
+
+  it('rend le média swipé récupérable par Cancel', async () => {
+    quatreDirections()
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    glisser(-150, 0)
+    await screen.findByAltText('b.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    expect(deplacementsDemandes(fetchSimule)[1].corps.parentReference.id).toBe('Pellicule')
   })
 })
 
