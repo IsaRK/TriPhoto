@@ -110,6 +110,21 @@ button {
   justify-content: center;
 }
 
+/* Avant connexion, l'écran ne porte que le logo et le bouton de connexion : on
+   les rassemble au centre, au lieu de laisser le logo flotter en haut et le
+   bouton rester collé en bas. */
+.ecran--accueil {
+  justify-content: center;
+  gap: 24px;
+}
+
+/* Sans cette annulation, l'en-tête et le bloc de contenu vide se partageraient
+   toute la hauteur et repousseraient de nouveau le bouton vers le bas. */
+.ecran--accueil .entete--grand,
+.ecran--accueil .contenu {
+  flex: 0 0 auto;
+}
+
 /* Dimensionné en largeur et non en hauteur : le viewBox est très allongé, une
    hauteur généreuse déborderait de l'écran et ferait défiler la page. */
 .entete--grand .logo {
@@ -177,6 +192,15 @@ button {
   background: none;
   color: var(--texte-doux);
   font-weight: 500;
+}
+
+/* La connexion est la seule chose à faire sur l'écran d'accueil : le bouton est
+   donc plus haut et plus large que les actions ordinaires, pour se lire comme
+   une invitation et non comme un lien de plus. */
+.action--grande {
+  min-height: 72px;
+  padding: 0 44px;
+  font-size: 1.25rem;
 }
 
 /* Empile les actions du bas de l'écran. */

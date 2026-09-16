@@ -125,7 +125,7 @@ export default function EcranAccueil() {
   }
 
   return (
-    <main className="ecran">
+    <main className={estConnecte ? 'ecran' : 'ecran ecran--accueil'}>
       <header className={estConnecte ? undefined : 'entete--grand'}>
         <h1 className="titre-logo">
           <Logo />

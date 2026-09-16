@@ -56,7 +56,7 @@ describe('bloc compte Microsoft', () => {
   it('propose la connexion quand aucun compte n’est connecté', async () => {
     render(<CompteMicrosoft />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Se connecter avec Microsoft' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Connect with Microsoft' }))
 
     expect(instanceSimulee.loginRedirect).toHaveBeenCalledWith({
       scopes: ['User.Read', 'Files.ReadWrite', 'Files.ReadWrite.All'],
@@ -69,9 +69,7 @@ describe('bloc compte Microsoft', () => {
 
     render(<CompteMicrosoft />)
 
-    expect(
-      screen.queryByRole('button', { name: 'Se connecter avec Microsoft' }),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Connect with Microsoft' })).not.toBeInTheDocument()
     expect(screen.getByText('Connexion en cours…')).toBeInTheDocument()
   })
 
@@ -82,9 +80,7 @@ describe('bloc compte Microsoft', () => {
     render(<CompteMicrosoft />)
 
     expect(await screen.findByText('Alice Martin')).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Se connecter avec Microsoft' }),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Connect with Microsoft' })).not.toBeInTheDocument()
   })
 
   it('affiche l’adresse du compte à côté du nom', async () => {
@@ -93,7 +89,9 @@ describe('bloc compte Microsoft', () => {
       'fetch',
       vi
         .fn()
-        .mockResolvedValue(reponseGraph({ displayName: 'Alice Martin', mail: 'alice@outlook.com' })),
+        .mockResolvedValue(
+          reponseGraph({ displayName: 'Alice Martin', mail: 'alice@outlook.com' }),
+        ),
     )
 
     render(<CompteMicrosoft />)
@@ -112,7 +110,8 @@ describe('bloc compte Microsoft', () => {
     expect(await screen.findByText('alice@outlook.com')).toBeInTheDocument()
   })
 
-  it('déconnecte le compte à la demande', async () => {    connecterUnCompte()
+  it('déconnecte le compte à la demande', async () => {
+    connecterUnCompte()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reponseGraph({ displayName: 'Alice Martin' })))
 
     render(<CompteMicrosoft />)
@@ -166,7 +165,9 @@ describe('bloc compte Microsoft', () => {
     const bouton = await screen.findByRole('button', { name: 'Se reconnecter' })
 
     expect(
-      screen.getByText("Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation."),
+      screen.getByText(
+        "Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation.",
+      ),
     ).toBeInTheDocument()
     expect(instanceSimulee.loginRedirect).not.toHaveBeenCalled()
     await userEvent.click(bouton)
@@ -177,7 +178,7 @@ describe('bloc compte Microsoft', () => {
     instanceSimulee.loginRedirect.mockRejectedValue(new Error('interaction_in_progress'))
 
     render(<CompteMicrosoft />)
-    await userEvent.click(screen.getByRole('button', { name: 'Se connecter avec Microsoft' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Connect with Microsoft' }))
 
     expect(await screen.findByText(/interaction_in_progress/)).toBeInTheDocument()
   })

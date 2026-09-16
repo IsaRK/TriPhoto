@@ -295,7 +295,8 @@ le sujet du Lot 6, décrit plus bas.
 - Les **quatre boutons des coins** : `Home` (haut gauche), `Cancel` (haut droite),
   `Delete` (bas gauche), `Skip` (bas droite). Ils portent leur mot seul, sans
   pictogramme, et ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
-  Ce sont les seuls libellés en anglais de l'application, à la demande expresse de
+  Ce sont, avec le bouton `Connect with Microsoft` de l'accueil, les seuls libellés
+  en anglais de l'application, à la demande expresse de
   l'utilisatrice : ces quatre mots lui sont plus familiers que leur traduction.
 - `Home`, `Delete` et `Skip` sont **toujours actifs**. Seul `Cancel` peut être inactif :
   il n'a rien à annuler tant qu'aucun média n'a été déplacé. Il est alors
