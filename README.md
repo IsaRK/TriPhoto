@@ -183,14 +183,14 @@ le sujet du lot suivant.
 - **Supprimer ne supprime pas** : `Delete` déplace le média vers le dossier Poubelle
   configuré, par un `PATCH /drives/{driveId}/items/{itemId}` avec
   `{ "parentReference": { "id": "<idPoubelle>" } }`.
-- **Annuler** refait le même appel en sens inverse, vers le dossier à trier. TriPhoto garde
-  une **pile** des déplacements (le média et sa position dans la liste), ce qui permet
-  d'annuler plusieurs fois de suite et pas seulement le dernier geste. Après une annulation
-  on **revient sur le média restauré** : il est de nouveau à trier, l'avoir sauté n'aurait
-  pas de sens.
-- `Recover` reste proposé sur l'écran « Tri terminé » quand la pile n'est pas vide : sans
-  cela, le dernier média envoyé à la poubelle ne serait plus récupérable depuis TriPhoto.
-- Un déplacement qui échoue **ne perd rien** : la liste et la pile d'annulation restent en
+- **Annuler** refait le même appel en sens inverse, vers le dossier à trier, et **réaffiche la
+  photo récupérée**. `Recover` défait **uniquement le dernier `Delete`** : on ne remonte pas
+  aux suppressions précédentes, qui sont acquises. Une fois l'annulation faite, le bouton
+  redevient inactif jusqu'à la prochaine suppression.
+- `Recover` reste proposé sur l'écran « Tri terminé » quand une suppression est encore
+  rattrapable : sans cela, le dernier média envoyé à la poubelle ne serait plus récupérable
+  depuis TriPhoto.
+- Un déplacement qui échoue **ne perd rien** : la liste et le média récupérable restent en
   place, un message s'affiche et le geste peut être refait.
 - Un dossier situé sur **un autre OneDrive** (dossier partagé) est refusé avec un message
   clair : `PATCH parentReference` ne traverse pas les drives. Ce cas relève d'une copie,

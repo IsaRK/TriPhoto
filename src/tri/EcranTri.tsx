@@ -20,10 +20,10 @@ type EtatChargement =
   | { statut: 'sessionExpiree' }
   | { statut: 'erreur'; message: string }
 
-/** Un déplacement déjà effectué, gardé pour pouvoir le défaire. */
+/** Le dernier média envoyé à la poubelle, gardé pour pouvoir le récupérer. */
 type Deplacement = {
   media: MediaOneDrive
-  /** Position du média dans la liste, pour y revenir après annulation. */
+  /** Position du média dans la liste, pour le réafficher après annulation. */
   index: number
 }
 
@@ -43,7 +43,7 @@ export default function EcranTri() {
   const [etat, setEtat] = useState<EtatChargement>({ statut: 'chargement' })
   const [index, setIndex] = useState(0)
   const [tentative, setTentative] = useState(0)
-  const [pileAnnulation, setPileAnnulation] = useState<Deplacement[]>([])
+  const [dernierDeplacement, setDernierDeplacement] = useState<Deplacement | null>(null)
   const [deplacementEnCours, setDeplacementEnCours] = useState(false)
   const [erreurDeplacement, setErreurDeplacement] = useState<string | null>(null)
 
@@ -143,12 +143,11 @@ export default function EcranTri() {
   }
 
   const medias = etat.medias
-  const dernierDeplacement = pileAnnulation[pileAnnulation.length - 1]
 
   /**
-   * Exécute un déplacement Graph. L'échec n'efface ni la liste ni la pile
-   * d'annulation : il affiche un message et laisse tout en place, pour qu'un
-   * réseau capricieux ne coûte pas le travail déjà fait.
+   * Exécute un déplacement Graph. L'échec n'efface ni la liste ni le média
+   * mémorisé pour l'annulation : il affiche un message et laisse tout en place,
+   * pour qu'un réseau capricieux ne coûte pas le travail déjà fait.
    */
   const executerDeplacement = (
     aDeplacer: MediaOneDrive,
@@ -170,13 +169,17 @@ export default function EcranTri() {
       })
   }
 
+  /**
+   * Annule le dernier « Delete » : le média retourne dans le dossier à trier et
+   * s'affiche de nouveau. On ne remonte pas plus loin — seule la dernière
+   * suppression est rattrapable, les précédentes sont acquises.
+   */
   const annulerDernierDeplacement = () => {
-    if (deplacementEnCours || dernierDeplacement === undefined) {
+    if (deplacementEnCours || dernierDeplacement === null) {
       return
     }
     executerDeplacement(dernierDeplacement.media, source, () => {
-      setPileAnnulation(pileAnnulation.slice(0, -1))
-      // On revient sur le média restauré : il est de nouveau à trier.
+      setDernierDeplacement(null)
       setIndex(dernierDeplacement.index)
     })
   }
@@ -201,7 +204,7 @@ export default function EcranTri() {
           Annuler reste possible ici : sans ce bouton, le dernier média envoyé à
           la poubelle ne pourrait plus jamais être récupéré depuis TriPhoto.
         */}
-        {dernierDeplacement === undefined ? null : (
+        {dernierDeplacement === null ? null : (
           <button type="button" className="action" onClick={annulerDernierDeplacement}>
             Recover
           </button>
@@ -231,7 +234,7 @@ export default function EcranTri() {
       return
     }
     executerDeplacement(media, poubelle, () => {
-      setPileAnnulation([...pileAnnulation, { media, index }])
+      setDernierDeplacement({ media, index })
       setIndex(index + 1)
     })
   }
@@ -278,7 +281,7 @@ export default function EcranTri() {
         type="button"
         className="tri__coin tri__coin--annuler"
         onClick={annulerDernierDeplacement}
-        disabled={dernierDeplacement === undefined}
+        disabled={dernierDeplacement === null}
       >
         Recover
       </button>

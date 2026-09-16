@@ -378,11 +378,11 @@ describe('poubelle et annulation', () => {
     expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
     const deplacements = deplacementsDemandes(fetchSimule)
     expect(deplacements[1].corps.parentReference.id).toBe('Pellicule')
-    // La pile est vide de nouveau : il n'y a plus rien à annuler.
+    // Plus rien à récupérer : la suppression a bien été défaite.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled())
   })
 
-  it('permet plusieurs annulations successives', async () => {
+  it('n’annule que la dernière suppression, sans remonter à la précédente', async () => {
     configurationComplete()
     vi.stubGlobal(
       'fetch',
@@ -401,12 +401,13 @@ describe('poubelle et annulation', () => {
     await screen.findByAltText('c.jpg')
 
     await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
+
+    // On récupère « b », la dernière supprimée, et on s'arrête là : « a » est acquis.
     expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
-    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Recover' })).toBeDisabled())
   })
 
-  it('garde la pile d’annulation quand un déplacement échoue', async () => {
+  it('garde le média récupérable quand un déplacement échoue', async () => {
     configurationComplete()
     let echoue = false
     vi.stubGlobal(
@@ -430,7 +431,7 @@ describe('poubelle et annulation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Recover' }))
 
     expect(await screen.findByText(/Le déplacement a échoué/)).toBeInTheDocument()
-    // L'échec ne doit pas vider la pile : l'annulation reste possible.
+    // L'échec ne doit pas oublier le média : l'annulation reste possible.
     expect(screen.getByRole('button', { name: 'Recover' })).toBeEnabled()
   })
 
