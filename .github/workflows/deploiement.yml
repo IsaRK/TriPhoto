@@ -1,0 +1,78 @@
+# Publie TriPhoto sur GitHub Pages à chaque changement de `main`.
+#
+# Le déploiement n'a lieu que sur `main`, et volontairement pas sur les pull
+# requests : il n'existe qu'un seul site GitHub Pages par dépôt, donc publier
+# une branche écraserait la version en service.
+name: Déploiement
+
+on:
+  push:
+    branches: [main]
+  # Permet aussi de relancer un déploiement à la main depuis l'onglet Actions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # Permet à l'action de publication de prouver son identité auprès de GitHub
+  # Pages sans qu'aucun jeton n'ait à être stocké dans le dépôt.
+  id-token: write
+
+# Si deux poussées se suivent de près, on laisse la première finir puis on ne
+# garde que la dernière : inutile de publier une version déjà dépassée.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  construire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier les types et les tests
+        run: |
+          npm run typecheck
+          npm run test
+
+      # Le Client ID n'est pas un secret : il voyage en clair dans chaque URL de
+      # connexion Microsoft. Il est donc rangé dans les « Variables » du dépôt et
+      # non dans les « Secrets », pour ne pas laisser croire qu'il protège
+      # quelque chose. Ce qui protège le compte, c'est la connexion Microsoft
+      # elle-même et la liste des URI de redirection autorisées.
+      - name: Construire l'application
+        run: npm run build
+        env:
+          VITE_MSAL_CLIENT_ID: ${{ vars.VITE_MSAL_CLIENT_ID }}
+
+      # GitHub Pages ne sait pas rediriger les URL inconnues vers l'application.
+      # En servant une copie d'index.html comme page « 404 », une adresse comme
+      # /TriPhoto/tri chargée directement démarre quand même TriPhoto, et React
+      # Router affiche l'écran de tri. Sans cela, recharger la page pendant le
+      # tri afficherait la page d'erreur de GitHub.
+      - name: Servir l'application aussi en page 404
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  publier:
+    needs: construire
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - id: deploiement
+        uses: actions/deploy-pages@v4

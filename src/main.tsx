@@ -13,7 +13,12 @@ if (!racine) {
 createRoot(racine).render(
   <StrictMode>
     <DemarrageAuth>
-      <BrowserRouter>
+      {/*
+        `basename` : sur GitHub Pages l'application vit dans /TriPhoto/. Sans lui,
+        React Router croirait que l'adresse /TriPhoto/tri est une route inconnue.
+        Vite renseigne BASE_URL tout seul (« / » en développement).
+      */}
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <App />
       </BrowserRouter>
     </DemarrageAuth>

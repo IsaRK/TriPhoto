@@ -26,6 +26,28 @@ export const MESSAGE_CLIENT_ID_MANQUANT =
   'forme VITE_MSAL_CLIENT_ID=... et relancez `npm run dev`. ' +
   'La marche à suivre détaillée est dans le README.'
 
+/**
+ * Adresse à laquelle Microsoft doit nous renvoyer après la connexion.
+ *
+ * Ce n'est pas simplement l'origine du site : sur GitHub Pages, l'application
+ * vit dans un sous-dossier (`https://isark.github.io/TriPhoto/`). Renvoyer vers
+ * la seule origine aboutirait à la page d'accueil du compte GitHub, hors de
+ * l'application, et Entra refuserait de toute façon une URI qu'il ne connaît pas.
+ *
+ * En développement, `BASE_URL` vaut « / » : on retourne alors l'origine seule,
+ * sans barre oblique finale, car Entra compare les URI caractère par caractère
+ * et c'est `http://localhost:5173` qui est déclaré dans l'app registration.
+ */
+export function calculerRedirectUri(
+  base: string = import.meta.env.BASE_URL,
+  origine: string = window.location.origin,
+): string {
+  if (base === '/') {
+    return origine
+  }
+  return origine + base
+}
+
 export function lireClientId(): string {
   const clientId = import.meta.env.VITE_MSAL_CLIENT_ID?.trim()
   if (!clientId) {
@@ -39,11 +61,11 @@ export function creerConfiguration(clientId: string): Configuration {
     auth: {
       clientId,
       authority: 'https://login.microsoftonline.com/consumers',
-      // L'URI de redirection suit l'origine courante : localhost en dev, l'URL de
-      // production une fois déployé. Les deux doivent être déclarées dans l'app
-      // registration.
-      redirectUri: window.location.origin,
-      postLogoutRedirectUri: window.location.origin,
+      // L'URI de redirection suit l'adresse par laquelle on est arrivé : localhost
+      // en développement, l'URL de production une fois déployé. Les deux doivent
+      // être déclarées dans l'app registration.
+      redirectUri: calculerRedirectUri(),
+      postLogoutRedirectUri: calculerRedirectUri(),
     },
     cache: {
       // localStorage (et non sessionStorage) pour rester connecté d'une session à

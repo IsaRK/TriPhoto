@@ -96,6 +96,73 @@ C'est aussi pour cela que la plateforme doit être « SPA » et non « Web ».
 Lors du déploiement, ajouter l'URL de production dans la même section
 **Authentication → Single-page application** de l'app registration.
 
+## Mettre l'application en ligne
+
+Tant que l'application n'est pas hébergée, elle n'existe que pendant que
+`npm run dev:mobile` tourne, sur le même Wi-Fi, avec un avertissement de certificat
+et une adresse IP qui change. Pour s'en servir vraiment, il faut la publier.
+
+Ce sera forcément une adresse en **`https://`**, jamais en `http://` : Entra refuse une
+URI de redirection en clair ailleurs que sur `localhost`, et une PWA installable exige un
+service worker, qui n'existe qu'en contexte sécurisé. Sans HTTPS, pas de « Ajouter à
+l'écran d'accueil ».
+
+**Publier TriPhoto ne divulgue rien.** Il n'y a pas de backend, pas de secret — le Client
+ID voyage de toute façon en clair dans chaque URL de connexion Microsoft — et surtout
+**les photos ne transitent jamais par l'hébergeur** : le navigateur parle directement à
+Microsoft Graph. Quelqu'un qui tomberait sur l'adresse verrait l'écran de connexion et
+trierait son propre OneDrive, pas le vôtre.
+
+### Pourquoi GitHub Pages, et ce que cela implique
+
+Le code est déjà sur GitHub : Pages évite d'ouvrir un compte ailleurs et de confier le
+déploiement à un tiers de plus. C'est gratuit, le HTTPS est fourni, et la publication
+tient dans un fichier de workflow.
+
+La contrepartie est que **le dépôt doit être public** — Pages sur un dépôt privé demande
+un abonnement payant. C'est acceptable ici parce qu'il n'y a rien à cacher dans ce code :
+aucun secret, aucune clé, et le Client ID est public par construction. Avant de basculer
+la visibilité, il reste prudent de vérifier que rien de sensible ne dort dans l'historique
+des commits, car rendre un dépôt public expose tous les commits passés, pas seulement le
+dernier.
+
+Deux conséquences techniques, toutes deux déjà traitées dans le code :
+
+- **Le site vit dans un sous-dossier**, `https://<compte>.github.io/TriPhoto/`, et non à
+  la racine d'un domaine. D'où `base` dans `vite.config.ts` (pour que les fichiers
+  construits soient cherchés au bon endroit) et `basename` sur le `BrowserRouter` (pour
+  que React Router ne prenne pas `/TriPhoto/tri` pour une route inconnue).
+- **L'URI de redirection Microsoft doit inclure ce sous-dossier.** C'est le piège le plus
+  coûteux : en renvoyant vers la seule origine, Microsoft ramènerait sur la page d'accueil
+  du compte GitHub, hors de l'application. La fonction `calculerRedirectUri` s'en charge
+  et est couverte par des tests.
+
+L'application utilise `BrowserRouter`, donc `/tri` est une vraie adresse. Or GitHub Pages
+ne sait pas rediriger les URL inconnues vers l'application : recharger la page pendant le
+tri afficherait sa page d'erreur. Le workflow contourne cela en publiant une copie
+d'`index.html` sous le nom `404.html`. GitHub la sert alors pour toute adresse inconnue —
+avec un statut 404 sans conséquence — et l'application démarre normalement.
+
+### La marche à suivre
+
+1. Rendre le dépôt public : **Settings → General → Danger Zone → Change visibility**.
+2. Dans **Settings → Pages**, choisir **Source : GitHub Actions** (et non « Deploy from a
+   branch »).
+3. Dans **Settings → Secrets and variables → Actions**, onglet **Variables**, bouton
+   **New repository variable** : nom `VITE_MSAL_CLIENT_ID`, valeur = le Client ID de
+   l'app registration. C'est une variable et non un secret, parce que ce n'est pas un
+   secret : il circule en clair dans chaque URL de connexion Microsoft.
+4. Pousser sur `main` : le workflow vérifie les types, lance les tests, construit
+   l'application et la publie. L'onglet **Actions** montre le déroulement, et l'adresse
+   obtenue s'affiche à la fin du travail `publier`.
+5. Ajouter cette adresse — `https://<compte>.github.io/TriPhoto/`, **avec** la barre
+   oblique finale — dans l'app registration Entra, sous **Authentication → Single-page
+   application → Add URI**. Entra compare les URI caractère par caractère : une barre
+   oblique en trop ou en moins suffit à faire échouer la connexion.
+
+Le déploiement n'a volontairement **pas** lieu sur les pull requests : il n'existe qu'un
+seul site Pages par dépôt, donc publier une branche écraserait la version en service.
+
 ## État d'avancement
 
 | Lot | Périmètre | Statut |
@@ -107,6 +174,7 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 | Lot 4 | Listage des médias du dossier à trier (couche Graph) | ✅ Terminé |
 | Lot 5 | Écran de tri en lecture seule : affichage des médias un par un | ✅ Terminé |
 | Lot 6 | Gestes de swipe au doigt, raccourcis clavier, overlay de destination | ✅ Terminé |
+| Lot 7 | Mise en ligne : GitHub Pages, workflow GitHub Actions | ✅ Terminé |
 | Lots suivants | PWA (manifest, service worker), README complet | ⏳ À venir |
 
 ### Contenu du Lot 0
@@ -299,6 +367,31 @@ dossier où elle doit aller, et elle y va.
   navigateur ni doigt, et c'est là que se trouvent les règles de seuil et d'axe dominant.
 - Pendant qu'un déplacement est en cours, un nouveau geste est ignoré : sans cela, deux
   `PATCH` partiraient pour le même fichier.
+
+### Contenu du Lot 7
+
+La mise en ligne sur GitHub Pages, décrite en détail dans « Mettre l'application en
+ligne » plus haut.
+
+- `.github/workflows/deploiement.yml` : à chaque poussée sur `main`, les types sont
+  vérifiés, les tests lancés, l'application construite puis publiée. Un échec de test
+  empêche la publication.
+- Le site vit dans le sous-dossier `/TriPhoto/`. D'où `base` dans `vite.config.ts` et
+  `basename` sur le `BrowserRouter`, tous deux tirés de la même valeur pour qu'ils ne
+  puissent pas diverger.
+- `calculerRedirectUri` fait pointer la redirection Microsoft vers ce sous-dossier. Sans
+  cela, la connexion ramènerait sur la page d'accueil du compte GitHub, hors de
+  l'application. Trois tests couvrent les trois cas : développement, téléphone sur le
+  réseau local, et production.
+- Le workflow publie une copie d'`index.html` sous le nom `404.html` : c'est ce qui permet
+  de recharger la page pendant le tri sans tomber sur l'erreur de GitHub.
+- `public/.nojekyll` : GitHub Pages passe par défaut les fichiers dans Jekyll, qui ignore
+  les dossiers commençant par un tiret bas. Ce fichier vide désactive ce traitement.
+- Le Client ID passe par une **variable** de dépôt et non par un secret : il circule en
+  clair dans chaque URL de connexion Microsoft, le ranger parmi les secrets laisserait
+  croire qu'il protège quelque chose.
+- Pas de déploiement sur les pull requests : il n'existe qu'un seul site Pages par dépôt,
+  publier une branche écraserait la version en service.
 
 ### Titres courts et formes directionnelles
 
