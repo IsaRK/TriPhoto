@@ -416,12 +416,52 @@ button {
   background: #1f2430;
 }
 
+/* La carte que l'on tire au doigt. `touch-action: none` est indispensable :
+   sans elle le navigateur interprète le geste comme un défilement et ne
+   transmet plus aucun `pointermove`. */
+.tri__carte {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
 /* `contain` et non `cover` : on montre la photo entière. Rogner ferait décider
    sur un cadrage que le fichier n'a pas. */
 .tri__media {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /* La photo ne doit pas être attrapée comme une image à déposer ailleurs :
+     cela avalerait le geste en cours de route. */
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Voile de couleur et nom du dossier, affichés une fois le seuil franchi : ils
+   annoncent où la photo partira si le doigt se relâche maintenant. */
+.tri__cible {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Le voile est un élément à part pour que le titre, lui, reste bien opaque. */
+.tri__cible-voile {
+  position: absolute;
+  inset: 0;
+  opacity: 0.45;
+}
+
+.tri__cible-titre {
+  position: relative;
+  padding: 10px 22px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .tri__sans-media {

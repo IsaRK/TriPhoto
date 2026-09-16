@@ -57,7 +57,8 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 | Lot 3 | Écran de configuration : 4 destinations, poubelle, persistance | ✅ Terminé |
 | Lot 4 | Listage des médias du dossier à trier (couche Graph) | ✅ Terminé |
 | Lot 5 | Écran de tri en lecture seule : affichage des médias un par un | ✅ Terminé |
-| Lots suivants | Gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
+| Lot 6 | Gestes de swipe au doigt, raccourcis clavier, overlay de destination | ✅ Terminé |
+| Lots suivants | PWA (manifest, service worker), README complet | ⏳ À venir |
 
 ### Contenu du Lot 0
 
@@ -163,7 +164,7 @@ l'écran de tri viendra au lot suivant.
 L'écran de tri. On voit les médias un par un, et les trois boutons qui ne dépendent pas
 d'une direction agissent déjà : `Delete` envoie le média à la poubelle, `Recover` le
 ramène, `Skip` passe au suivant. Les **gestes de swipe** vers les quatre destinations sont
-le sujet du lot suivant.
+le sujet du Lot 6, décrit plus bas.
 
 - Les médias du dossier à trier sont affichés **un par un**, en **plein écran**, du plus
   ancien au plus récent, avec la progression (`12 / 340`) et la date de prise de vue
@@ -198,8 +199,8 @@ le sujet du lot suivant.
 - Un dossier situé sur **un autre OneDrive** (dossier partagé) est refusé avec un message
   clair : `PATCH parentReference` ne traverse pas les drives. Ce cas relève d'une copie,
   qui reste hors du périmètre.
-- Les **quatre destinations** ne sont pas encore actives : les gestes de swipe viennent au
-  lot suivant.
+- Les **quatre destinations** ne sont pas encore actives à ce stade : les gestes de swipe
+  viennent au Lot 6.
 - Le dossier **Poubelle est désormais obligatoire** pour lancer le tri : sans lui, le
   bouton Supprimer n'aurait nulle part où envoyer les médias
 - Pour une photo, c'est la **miniature** Graph qui est affichée et non le fichier
@@ -212,6 +213,42 @@ le sujet du lot suivant.
   métadonnées : télécharger le fichier entier coûterait cher en données mobiles.
 - Les erreurs sont distinguées : une session expirée propose de se reconnecter, une
   erreur réseau propose de réessayer
+
+### Contenu du Lot 6
+
+Le geste de swipe, qui est la raison d'être de l'application : on pousse la photo vers le
+dossier où elle doit aller, et elle y va.
+
+- **On fait glisser la photo au doigt.** La carte suit le doigt et s'incline légèrement
+  dans le sens du mouvement. L'inclinaison est **bornée à 12°** : au-delà, la photo devient
+  pénible à regarder alors qu'on est précisément en train de décider de son sort.
+- La direction retenue est celle de l'**axe dominant** : on compare l'écart horizontal et
+  l'écart vertical, et le plus grand l'emporte. Un geste un peu de travers part donc là où
+  on l'a voulu, et non dans un coin.
+- Le geste ne déclenche rien tant qu'il n'a pas dépassé **90 pixels**. En dessous, la carte
+  revient à sa place. C'est ce qui permet de **changer d'avis en cours de geste**, et
+  d'éviter qu'un effleurement pendant le défilement n'expédie une photo.
+- Une fois le seuil franchi, un **voile de la couleur de la direction** recouvre la photo et
+  le **titre court du dossier** s'affiche au centre, dans une pastille de cette même
+  couleur. Le message est : « si tu lâches maintenant, la photo part là ». Tant que le
+  voile n'est pas là, le geste peut encore être abandonné en ramenant le doigt.
+- Swiper vers une direction **à laquelle aucun dossier n'est associé** ne fait rien : ni
+  voile, ni déplacement, la carte revient en place. Configurer les quatre destinations
+  n'est pas obligatoire, et une direction vide doit rester inoffensive.
+- Les **pastilles de bord sont aussi cliquables**. Sur un ordinateur, viser une pastille à
+  la souris est plus simple que de dessiner un glissement, et un bouton reste accessible
+  au lecteur d'écran là où un geste ne l'est pas.
+- Les **flèches du clavier** envoient la photo dans la direction correspondante, ce qui
+  permet de tester le tri sur un ordinateur sans souris. Elles appellent `preventDefault()`
+  pour ne pas faire défiler la page en même temps.
+- Un swipe est un déplacement comme un autre : `Recover` **annule aussi un swipe**, pas
+  seulement un `Delete`. Il défait toujours le dernier déplacement en date, quelle qu'en
+  soit l'origine.
+- La logique du geste est isolée dans `src/tri/geste.ts`, en fonctions **pures**
+  (`directionDuGeste`, `rotationCarte`). Elles se testent en une ligne, sans simuler ni
+  navigateur ni doigt, et c'est là que se trouvent les règles de seuil et d'axe dominant.
+- Pendant qu'un déplacement est en cours, un nouveau geste est ignoré : sans cela, deux
+  `PATCH` partiraient pour le même fichier.
 
 ### Titres courts et formes directionnelles
 
