@@ -57,7 +57,9 @@ export async function lireIdDeMonDrive(jetonAcces: string): Promise<string> {
   })
 
   if (!reponse.ok) {
-    throw new Error(`Microsoft Graph a refusé la lecture de votre OneDrive (code ${reponse.status}).`)
+    throw new Error(
+      `Microsoft Graph a refusé la lecture de votre OneDrive (code ${reponse.status}).`,
+    )
   }
 
   const drive = (await reponse.json()) as { id?: string }
@@ -178,6 +180,6 @@ function convertir(
 }
 
 /** En-tête commun à tous les appels Graph. */
-export function enTetes(jetonAcces: string): HeadersInit {
+export function enTetes(jetonAcces: string): Record<string, string> {
   return { Authorization: `Bearer ${jetonAcces}` }
 }

@@ -25,7 +25,12 @@
   --marge-droite: env(safe-area-inset-right, 0px);
 
   color-scheme: light;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   color: var(--texte);
   background-color: var(--fond);
 }
@@ -80,10 +85,8 @@ button {
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  padding: calc(var(--marge-haut) + var(--espace))
-    calc(var(--marge-droite) + var(--espace))
-    calc(var(--marge-bas) + var(--espace))
-    calc(var(--marge-gauche) + var(--espace));
+  padding: calc(var(--marge-haut) + var(--espace)) calc(var(--marge-droite) + var(--espace))
+    calc(var(--marge-bas) + var(--espace)) calc(var(--marge-gauche) + var(--espace));
   gap: var(--espace);
 }
 
@@ -96,6 +99,23 @@ button {
 /* Le logo tient lieu de titre de niveau 1 : le mot « TriPhoto » reste dans le SVG. */
 .titre-logo {
   display: flex;
+}
+
+/* Avant connexion l'écran n'a rien à montrer : le logo prend toute la place
+   disponible et sert d'écran d'accueil à lui seul. */
+.entete--grand {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Dimensionné en largeur et non en hauteur : le viewBox est très allongé, une
+   hauteur généreuse déborderait de l'écran et ferait défiler la page. */
+.entete--grand .logo {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
 }
 
 /* La hauteur du logo est fixée, la largeur suit le rapport du viewBox. */
@@ -171,53 +191,15 @@ button {
   text-align: center;
 }
 
-/* --------------- Boussole des directions de swipe --------------- */
-
-.boussole {
-  display: grid;
-  width: 100%;
-  max-width: 300px;
-  grid-template-areas:
-    '. haut .'
-    'gauche . droite'
-    '. bas .';
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-  justify-items: center;
-  list-style: none;
-}
-
-.direction {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.direction--gauche {
-  grid-area: gauche;
-}
-
-.direction--droite {
-  grid-area: droite;
-}
-
-.direction--haut {
-  grid-area: haut;
-}
-
-.direction--bas {
-  grid-area: bas;
-}
-
-.direction__pastille {
-  width: clamp(56px, 19vw, 76px);
-  height: clamp(56px, 19vw, 76px);
-}
-
-.direction__libelle {
+/* L'adresse peut être longue : on la coupe plutôt que de la laisser élargir
+   l'écran. La marge négative annule en partie le `gap` de `.pile`, pour qu'elle
+   se lise comme un sous-titre du nom et non comme un bloc séparé. */
+.compte__adresse {
+  margin-top: -4px;
   color: var(--texte-doux);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 /* --------------- Explorateur de dossiers OneDrive --------------- */
@@ -360,26 +342,20 @@ button {
 /*
  * La forme pointe vers la direction du geste : on reconnaît la destination sans
  * lire l'étiquette. Le point de départ de chaque polygone est le sommet.
- * Les mêmes quatre formes servent à la boussole de l'accueil et aux pastilles de
- * la liste : une seule règle par direction, pour qu'elles ne divergent pas.
  */
-.emplacement__pastille--gauche,
-.direction--gauche .direction__pastille {
+.emplacement__pastille--gauche {
   clip-path: polygon(0% 50%, 45% 0%, 100% 0%, 100% 100%, 45% 100%);
 }
 
-.emplacement__pastille--droite,
-.direction--droite .direction__pastille {
+.emplacement__pastille--droite {
   clip-path: polygon(100% 50%, 55% 100%, 0% 100%, 0% 0%, 55% 0%);
 }
 
-.emplacement__pastille--haut,
-.direction--haut .direction__pastille {
+.emplacement__pastille--haut {
   clip-path: polygon(50% 0%, 100% 45%, 100% 100%, 0% 100%, 0% 45%);
 }
 
-.emplacement__pastille--bas,
-.direction--bas .direction__pastille {
+.emplacement__pastille--bas {
   clip-path: polygon(50% 100%, 0% 55%, 0% 0%, 100% 0%, 100% 55%);
 }
 
@@ -426,4 +402,235 @@ button {
   color: var(--rose);
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+/* --------------------------- Écran de tri ------------------------ */
+
+/* Le média occupe tout l'écran ; boutons et informations sont posés par-dessus.
+   Le fond sombre sert de passe-partout : une photo verticale ne remplit jamais
+   un écran de téléphone, et un fond clair ferait baver ses bords. */
+.tri {
+  position: relative;
+  overflow: hidden;
+  height: 100dvh;
+  background: #1f2430;
+}
+
+/* `contain` et non `cover` : on montre la photo entière. Rogner ferait décider
+   sur un cadrage que le fichier n'a pas. */
+.tri__media {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tri__sans-media {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 0 32px;
+  color: #ffffff;
+  text-align: center;
+}
+
+/* Le média suivant est chargé mais jamais montré. */
+.prechargement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Les infos passent sous la pastille « haut », qui occupe le centre du bord. */
+.tri__infos {
+  position: absolute;
+  top: calc(var(--marge-haut) + 76px);
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #ffffff;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.tri__progression {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.tri__date {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+/* --- Les quatre boutons des coins --- */
+
+/* Les quatre boutons des coins portent leur mot seul, sans icône : un mot lu est
+   moins ambigu qu'un pictogramme, et les quatre restent ainsi identiques. */
+.tri__coin {
+  position: absolute;
+  display: flex;
+  min-width: 64px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--texte);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Seul « Recover » peut rester durablement inactif, faute de déplacement à
+   annuler : l'estomper est ici une information, pas un défaut d'affichage. */
+.tri__coin:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+/* Un déplacement raté n'efface rien à l'écran : le message se pose par-dessus la
+   photo, qui reste à trier. */
+.tri__erreur {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: 300px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--texte);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.tri__coin--retour {
+  top: calc(var(--marge-haut) + 12px);
+  left: calc(var(--marge-gauche) + 12px);
+}
+
+.tri__coin--annuler {
+  top: calc(var(--marge-haut) + 12px);
+  right: calc(var(--marge-droite) + 12px);
+}
+
+.tri__coin--poubelle {
+  bottom: calc(var(--marge-bas) + 12px);
+  left: calc(var(--marge-gauche) + 12px);
+}
+
+.tri__coin--passer {
+  right: calc(var(--marge-droite) + 12px);
+  bottom: calc(var(--marge-bas) + 12px);
+}
+
+/* --- Les quatre destinations, au milieu de chaque bord --- */
+
+/* Le bouton s'élargit à la longueur du titre et ne va jamais à la ligne : un
+   titre court coupé en deux ne servirait plus de repère. */
+.tri__bord {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+/* Un bouton désactivé reste à pleine couleur : ces pastilles portent l'identité
+   du produit, les estomper viderait l'écran de ses repères. */
+.tri__bord:disabled {
+  opacity: 1;
+}
+
+/* La direction se lit à la forme : une pastille bien ronde, prolongée d'une
+   pointe du côté vers lequel on envoie la photo. La pointe est un pseudo-élément
+   qui reprend la couleur du bouton (`background: inherit`) et mord de quelques
+   pixels dans le corps, pour que les deux ne fassent qu'une seule forme
+   continue. Aucune taille n'est imposée au bouton : il fait exactement la
+   largeur de son titre, seule la police est conservée. */
+.tri__bord::after {
+  content: '';
+  position: absolute;
+  background: inherit;
+}
+
+.tri__bord--gauche,
+.tri__bord--droite {
+  top: 50%;
+  padding: 6px 12px;
+  transform: translateY(-50%);
+}
+
+.tri__bord--gauche {
+  left: calc(var(--marge-gauche) + 10px);
+}
+
+.tri__bord--gauche::after {
+  top: 50%;
+  right: calc(100% - 5px);
+  width: 13px;
+  height: 16px;
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+  transform: translateY(-50%);
+}
+
+.tri__bord--droite {
+  right: calc(var(--marge-droite) + 10px);
+}
+
+.tri__bord--droite::after {
+  top: 50%;
+  left: calc(100% - 5px);
+  width: 13px;
+  height: 16px;
+  clip-path: polygon(100% 50%, 0 0, 0 100%);
+  transform: translateY(-50%);
+}
+
+.tri__bord--haut,
+.tri__bord--bas {
+  left: 50%;
+  padding: 6px 12px;
+  transform: translateX(-50%);
+}
+
+.tri__bord--haut {
+  top: calc(var(--marge-haut) + 10px);
+}
+
+.tri__bord--haut::after {
+  bottom: calc(100% - 5px);
+  left: 50%;
+  width: 16px;
+  height: 13px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  transform: translateX(-50%);
+}
+
+.tri__bord--bas {
+  bottom: calc(var(--marge-bas) + 10px);
+}
+
+.tri__bord--bas::after {
+  top: calc(100% - 5px);
+  left: 50%;
+  width: 16px;
+  height: 13px;
+  clip-path: polygon(50% 100%, 100% 0, 0 0);
+  transform: translateX(-50%);
 }

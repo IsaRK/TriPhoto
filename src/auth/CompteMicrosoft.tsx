@@ -112,11 +112,17 @@ export default function CompteMicrosoft() {
     )
   }
 
+  // Repli sur le compte MSAL : `username` est exactement l'adresse saisie dans la
+  // fenêtre de connexion, même quand Graph ne renvoie ni `mail` ni
+  // `userPrincipalName`.
+  const adresse = etat.profil.email ?? compte?.username ?? null
+
   return (
     <div className="pile">
       <p className="compte">
         Connecté en tant que <strong>{etat.profil.nom}</strong>
       </p>
+      {adresse === null ? null : <p className="compte__adresse">{adresse}</p>}
       <button type="button" className="action action--discrete" onClick={deconnecter}>
         Se déconnecter
       </button>

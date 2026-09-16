@@ -56,6 +56,7 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 | Lot 2 | Explorateur de dossiers OneDrive (couche Graph de lecture) | ✅ Terminé |
 | Lot 3 | Écran de configuration : 4 destinations, poubelle, persistance | ✅ Terminé |
 | Lot 4 | Listage des médias du dossier à trier (couche Graph) | ✅ Terminé |
+| Lot 5 | Écran de tri en lecture seule : affichage des médias un par un | ✅ Terminé |
 | Lots suivants | Gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
 
 ### Contenu du Lot 0
@@ -76,8 +77,12 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 - Scopes demandés : `User.Read`, `Files.ReadWrite` et `Files.ReadWrite.All`
   (ce dernier est nécessaire aux dossiers partagés, voir la section dédiée)
 - Flux par **redirection** (et non popup), plus fiable sur navigateur mobile
-- Appel Microsoft Graph `GET /me` en REST, qui affiche le nom du compte connecté et
-  prouve que le jeton d'accès fonctionne
+- Appel Microsoft Graph `GET /me` en REST, qui affiche le nom **et l'adresse** du compte
+  connecté et prouve que le jeton d'accès fonctionne. Les champs sont demandés
+  explicitement (`$select=displayName,givenName,mail,userPrincipalName`) car sur un
+  compte Microsoft personnel `mail` est souvent vide alors que `userPrincipalName`
+  porte l'adresse. Si Graph n'en renvoie aucune, on se rabat sur le `username` du
+  compte MSAL, qui est exactement l'adresse saisie à la connexion.
 - Message explicite si `VITE_MSAL_CLIENT_ID` est absent
 - Une seule instance MSAL pour toute la page, et aucun clignotement entre
   « déconnecté » et « connecté » au démarrage
@@ -153,6 +158,61 @@ l'écran de tri viendra au lot suivant.
 - Les miniatures sont demandées avec `$expand=thumbnails` — c'est une relation Graph
   et non un champ, elles ne viennent pas toutes seules
 
+### Contenu du Lot 5
+
+L'écran de tri. On voit les médias un par un, et les trois boutons qui ne dépendent pas
+d'une direction agissent déjà : `Delete` envoie le média à la poubelle, `Recover` le
+ramène, `Skip` passe au suivant. Les **gestes de swipe** vers les quatre destinations sont
+le sujet du lot suivant.
+
+- Les médias du dossier à trier sont affichés **un par un**, en **plein écran**, du plus
+  ancien au plus récent, avec la progression (`12 / 340`) et la date de prise de vue
+- La photo est affichée entière (jamais rognée) sur un fond sombre : rogner ferait
+  décider sur un cadrage que le fichier n'a pas
+- Les **quatre destinations** sont posées par-dessus, au milieu de chaque bord, avec leur
+  couleur et leur titre court. Ce sont de petites pastilles bien rondes, aussi compactes que
+  leur titre le permet, prolongées d'une **pointe** du côté vers lequel on envoie la photo.
+  La flèche découpée d'une première version imposait une pointe longue et une hauteur fixe
+  qui mangeaient l'image.
+- Les **quatre boutons des coins** : `Home` (haut gauche), `Recover` (haut droite),
+  `Delete` (bas gauche), `Skip` (bas droite). Ils portent leur mot seul, sans
+  pictogramme, et ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
+  Ce sont les seuls libellés en anglais de l'application, à la demande expresse de
+  l'utilisatrice : ces quatre mots lui sont plus familiers que leur traduction.
+- `Home`, `Delete` et `Skip` sont **toujours actifs**. Seul `Recover` peut être inactif :
+  il n'a rien à annuler tant qu'aucun média n'a été envoyé à la poubelle. Il est alors
+  estompé, ce qui est ici une information juste et non un défaut d'affichage, puisque les
+  trois autres ne le sont jamais.
+- **Supprimer ne supprime pas** : `Delete` déplace le média vers le dossier Poubelle
+  configuré, par un `PATCH /drives/{driveId}/items/{itemId}` avec
+  `{ "parentReference": { "id": "<idPoubelle>" } }`.
+- **Annuler** refait le même appel en sens inverse, vers le dossier à trier, et **réaffiche la
+  photo récupérée**. `Recover` défait **uniquement le dernier `Delete`** : on ne remonte pas
+  aux suppressions précédentes, qui sont acquises. Une fois l'annulation faite, le bouton
+  redevient inactif jusqu'à la prochaine suppression.
+- `Recover` reste proposé sur l'écran « Tri terminé » quand une suppression est encore
+  rattrapable : sans cela, le dernier média envoyé à la poubelle ne serait plus récupérable
+  depuis TriPhoto.
+- Un déplacement qui échoue **ne perd rien** : la liste et le média récupérable restent en
+  place, un message s'affiche et le geste peut être refait.
+- Un dossier situé sur **un autre OneDrive** (dossier partagé) est refusé avec un message
+  clair : `PATCH parentReference` ne traverse pas les drives. Ce cas relève d'une copie,
+  qui reste hors du périmètre.
+- Les **quatre destinations** ne sont pas encore actives : les gestes de swipe viennent au
+  lot suivant.
+- Le dossier **Poubelle est désormais obligatoire** pour lancer le tri : sans lui, le
+  bouton Supprimer n'aurait nulle part où envoyer les médias
+- Pour une photo, c'est la **miniature** Graph qui est affichée et non le fichier
+  d'origine : une photo de téléphone pèse plusieurs mégaoctets, la miniature quelques
+  centaines de kilooctets. Le fichier complet ne sert que si OneDrive n'a pas produit
+  de miniature.
+- Pour une vidéo, un lecteur `<video>` avec ses contrôles, sans lecture automatique
+- Le média **suivant** est demandé au navigateur à l'avance, hors de l'écran, pour que
+  le passage au suivant soit instantané. Pour une vidéo on ne précharge que les
+  métadonnées : télécharger le fichier entier coûterait cher en données mobiles.
+- Les erreurs sont distinguées : une session expirée propose de se reconnecter, une
+  erreur réseau propose de réessayer
+
 ### Titres courts et formes directionnelles
 
 Retouche d'interface de l'écran de configuration, sans nouvelle fonctionnalité Graph :
@@ -166,10 +226,14 @@ Retouche d'interface de l'écran de configuration, sans nouvelle fonctionnalité
 - Une configuration enregistrée avant l'arrivée des titres n'en a pas : elle est
   **complétée** à la relecture plutôt que rejetée, pour ne pas faire perdre ses dossiers.
 - Les pastilles de couleur ne sont plus des ronds mais des **formes qui pointent vers
-  leur direction**, sur l'écran de configuration comme sur la boussole d'accueil.
+  leur direction**, sur l'écran de configuration.
 - Le titre « TriPhoto » est remplacé par un logo (`src/ui/Logo.tsx`) : un appareil photo
   entouré des quatre flèches de direction. Les couleurs y sont lues dans
   `src/tri/directions.ts`, jamais réécrites en dur, pour que le logo suive la palette.
+- Avant connexion, l'écran ne montre **que le logo, en grand, et le bouton de
+  connexion**. L'ancienne « boussole » qui listait les quatre directions a été retirée :
+  elle décrivait des dossiers que l'utilisatrice n'avait pas encore choisis, et le logo
+  porte déjà les quatre couleurs.
 
 ## Les dossiers partagés
 
@@ -245,8 +309,11 @@ Microsoft redemandera donc votre consentement.
 - Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse
   la copie chez son propriétaire.
 - La racine du OneDrive n'est pas choisissable : il faut ouvrir un dossier.
-- Les URL de téléchargement renvoyées par Graph expirent au bout d'environ une heure.
-  Sur une longue session de tri, l'écran d'affichage devra les redemander.
+- Les URL de téléchargement renvoyées par Graph expirent au bout d'environ une heure,
+  et l'écran de tri ne les redemande pas encore : sur une session très longue, les
+  médias finissent par ne plus s'afficher. Recharger la page suffit à repartir.
+- La liste des médias est lue une seule fois à l'entrée dans l'écran de tri. Les
+  photos ajoutées au dossier pendant le tri n'apparaissent qu'au rechargement.
 - OneDrive ne produit pas toujours la miniature de tous les fichiers d'une page.
   Les médias concernés sont conservés avec une miniature absente, à charge de
   l'écran de tri de se rabattre sur le fichier lui-même.

@@ -372,13 +372,23 @@ describe('conditions de démarrage du tri', () => {
     expect(peutCommencerLeTri(configuration)).toBe(false)
   })
 
-  it('accepte une source et une seule destination', () => {
+  it('accepte une source, une poubelle et une seule destination', () => {
+    const configuration = configurationAvec({
+      source: dossier('a'),
+      poubelle: dossier('p'),
+      bas: dossier('b'),
+    })
+
+    expect(peutCommencerLeTri(configuration)).toBe(true)
+  })
+
+  it('refuse de commencer sans dossier Poubelle', () => {
     const configuration = configurationAvec({
       source: dossier('a'),
       bas: dossier('b'),
     })
 
-    expect(peutCommencerLeTri(configuration)).toBe(true)
+    expect(peutCommencerLeTri(configuration)).toBe(false)
   })
 
   it('ne compte ni la source ni la poubelle comme destinations', () => {
