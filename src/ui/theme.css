@@ -364,21 +364,25 @@ button {
  * la liste : une seule règle par direction, pour qu'elles ne divergent pas.
  */
 .emplacement__pastille--gauche,
+.legende__pastille--gauche,
 .direction--gauche .direction__pastille {
   clip-path: polygon(0% 50%, 45% 0%, 100% 0%, 100% 100%, 45% 100%);
 }
 
 .emplacement__pastille--droite,
+.legende__pastille--droite,
 .direction--droite .direction__pastille {
   clip-path: polygon(100% 50%, 55% 100%, 0% 100%, 0% 0%, 55% 0%);
 }
 
 .emplacement__pastille--haut,
+.legende__pastille--haut,
 .direction--haut .direction__pastille {
   clip-path: polygon(50% 0%, 100% 45%, 100% 100%, 0% 100%, 0% 45%);
 }
 
 .emplacement__pastille--bas,
+.legende__pastille--bas,
 .direction--bas .direction__pastille {
   clip-path: polygon(50% 100%, 0% 55%, 0% 0%, 100% 0%, 100% 55%);
 }
@@ -426,4 +430,105 @@ button {
   color: var(--rose);
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+/* --------------------------- Écran de tri ------------------------ */
+
+/* Le tri occupe tout l'écran : aucun défilement, la carte s'adapte à la place. */
+.ecran--tri {
+  overflow: hidden;
+  gap: 16px;
+}
+
+.barre-tri {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.barre-tri__retour {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-left: -12px;
+  color: var(--texte);
+  font-size: 1.6rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.barre-tri__progression {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.barre-tri__date {
+  overflow: hidden;
+  margin-left: auto;
+  color: var(--texte-doux);
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.carte {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+/* `contain` et non `cover` : on montre la photo entière, sans rogner un visage.
+   `min-width/min-height: 0` sont indispensables : par défaut un élément flex
+   refuse de descendre sous la taille intrinsèque du média, et une photo de
+   4000 px déborderait de l'écran au lieu d'être réduite. */
+.carte__media {
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 16px;
+  object-fit: contain;
+}
+
+/* Le média suivant est chargé mais jamais montré. */
+.prechargement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.legende {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  list-style: none;
+}
+
+.legende__element {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legende__pastille {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.legende__titre {
+  overflow: hidden;
+  max-width: 12ch;
+  color: var(--texte-doux);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

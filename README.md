@@ -56,6 +56,7 @@ Lors du déploiement, ajouter l'URL de production dans la même section
 | Lot 2 | Explorateur de dossiers OneDrive (couche Graph de lecture) | ✅ Terminé |
 | Lot 3 | Écran de configuration : 4 destinations, poubelle, persistance | ✅ Terminé |
 | Lot 4 | Listage des médias du dossier à trier (couche Graph) | ✅ Terminé |
+| Lot 5 | Écran de tri en lecture seule : affichage des médias un par un | ✅ Terminé |
 | Lots suivants | Gestes de swipe, déplacements Graph, annulation, PWA, README complet | ⏳ À venir |
 
 ### Contenu du Lot 0
@@ -153,6 +154,28 @@ l'écran de tri viendra au lot suivant.
 - Les miniatures sont demandées avec `$expand=thumbnails` — c'est une relation Graph
   et non un champ, elles ne viennent pas toutes seules
 
+### Contenu du Lot 5
+
+L'écran de tri, en **lecture seule** : on voit les médias, on ne les déplace pas encore.
+Les gestes de swipe et les déplacements vers les dossiers de destination sont le sujet
+des deux lots suivants. Ce lot sert surtout à confronter la couche Graph du Lot 4 à un
+vrai OneDrive.
+
+- Les médias du dossier à trier sont affichés **un par un**, du plus ancien au plus
+  récent, avec la progression (`12 / 340`) et la date de prise de vue en toutes lettres
+- Pour une photo, c'est la **miniature** Graph qui est affichée et non le fichier
+  d'origine : une photo de téléphone pèse plusieurs mégaoctets, la miniature quelques
+  dizaines de kilooctets. Le fichier complet ne sert que si OneDrive n'a pas produit
+  de miniature.
+- Pour une vidéo, un lecteur `<video>` avec ses contrôles, sans lecture automatique
+- Le média **suivant** est demandé au navigateur à l'avance, hors de l'écran, pour que
+  le passage au suivant soit instantané. Pour une vidéo on ne précharge que les
+  métadonnées : télécharger le fichier entier coûterait cher en données mobiles.
+- Un rappel en bas de l'écran associe chaque direction configurée à son titre court
+- Le bouton « Passer » avance sans rien modifier — c'est la seule action possible à ce stade
+- Les erreurs sont distinguées : une session expirée propose de se reconnecter, une
+  erreur réseau propose de réessayer
+
 ### Titres courts et formes directionnelles
 
 Retouche d'interface de l'écran de configuration, sans nouvelle fonctionnalité Graph :
@@ -245,8 +268,11 @@ Microsoft redemandera donc votre consentement.
 - Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse
   la copie chez son propriétaire.
 - La racine du OneDrive n'est pas choisissable : il faut ouvrir un dossier.
-- Les URL de téléchargement renvoyées par Graph expirent au bout d'environ une heure.
-  Sur une longue session de tri, l'écran d'affichage devra les redemander.
+- Les URL de téléchargement renvoyées par Graph expirent au bout d'environ une heure,
+  et l'écran de tri ne les redemande pas encore : sur une session très longue, les
+  médias finissent par ne plus s'afficher. Recharger la page suffit à repartir.
+- La liste des médias est lue une seule fois à l'entrée dans l'écran de tri. Les
+  photos ajoutées au dossier pendant le tri n'apparaissent qu'au rechargement.
 - OneDrive ne produit pas toujours la miniature de tous les fichiers d'une page.
   Les médias concernés sont conservés avec une miniature absente, à charge de
   l'écran de tri de se rabattre sur le fichier lui-même.

@@ -27,7 +27,10 @@ export type MediaOneDrive = {
    * redemander pour les longues sessions.
    */
   urlTelechargement: string | null
-  /** Miniature large, ou `null` si Graph n'en a pas encore produit. */
+  /**
+   * Miniature affichable, ou `null` si Graph n'en a pas encore produit.
+   * Voir `PARAMETRES` pour la taille demandée.
+   */
   urlMiniature: string | null
   taille: number
 }
@@ -42,7 +45,7 @@ type ElementGraph = {
   file?: { mimeType?: string }
   photo?: { takenDateTime?: string }
   '@microsoft.graph.downloadUrl'?: string
-  thumbnails?: { large?: { url?: string } }[]
+  thumbnails?: { c1600x1600?: { url?: string }; large?: { url?: string } }[]
 }
 
 type ReponseChildren = {
@@ -55,12 +58,17 @@ type ReponseChildren = {
  * non un champ : sans lui Graph ne les renvoie pas. On demande l'URL de
  * téléchargement explicitement, sinon le `$select` l'exclurait.
  *
+ * On demande une taille sur mesure de 1600 px plutôt que la taille `large` :
+ * celle-ci plafonne selon les comptes, et une photo affichée en plein écran sur
+ * un téléphone à forte densité paraîtrait floue. `large` reste demandée en
+ * secours, car OneDrive ne produit pas toujours les tailles sur mesure.
+ *
  * `$top` reste modeste : sur une page trop large, OneDrive renonce à produire
  * les miniatures d'une partie des éléments.
  */
 const PARAMETRES =
   '?$select=id,name,file,photo,video,size,createdDateTime,fileSystemInfo,@microsoft.graph.downloadUrl' +
-  '&$expand=thumbnails($select=large)' +
+  '&$expand=thumbnails($select=c1600x1600,large)' +
   '&$top=50'
 
 /**
@@ -128,7 +136,8 @@ function convertir(element: ElementGraph, driveId: string): MediaOneDrive | unde
     priseLe,
     instantPriseLe: Number.isNaN(instant) ? 0 : instant,
     urlTelechargement: element['@microsoft.graph.downloadUrl'] ?? null,
-    urlMiniature: element.thumbnails?.[0]?.large?.url ?? null,
+    urlMiniature:
+      element.thumbnails?.[0]?.c1600x1600?.url ?? element.thumbnails?.[0]?.large?.url ?? null,
     taille: element.size ?? 0,
   }
 }

@@ -66,7 +66,7 @@ describe('lecture des médias d’un dossier', () => {
     expect(url).toContain(
       '$select=id,name,file,photo,video,size,createdDateTime,fileSystemInfo,@microsoft.graph.downloadUrl',
     )
-    expect(url).toContain('$expand=thumbnails')
+    expect(url).toContain('$expand=thumbnails($select=c1600x1600,large)')
     expect(options.headers.Authorization).toContain('jeton-de-test')
   })
 
@@ -207,6 +207,20 @@ describe('lecture des médias d’un dossier', () => {
 
     expect(medias[0].urlMiniature).toBe('https://miniature/a')
     expect(medias[1].urlMiniature).toBeNull()
+  })
+
+  it('préfère la miniature sur mesure à la taille large', async () => {
+    const element = {
+      ...photo('a'),
+      thumbnails: [
+        { c1600x1600: { url: 'https://miniature/sur-mesure' }, large: { url: 'https://miniature/large' } },
+      ],
+    }
+    simulerAppels(reponse({ value: [element] }))
+
+    const medias = await listerMedias('jeton', 'mon-drive', 'dossier-1')
+
+    expect(medias[0].urlMiniature).toBe('https://miniature/sur-mesure')
   })
 
   it('signale clairement un refus de Microsoft Graph', async () => {
