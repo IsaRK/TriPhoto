@@ -17,10 +17,15 @@ const instanceSimulee = {
 
 const compte = { homeAccountId: 'compte-1', username: 'alice@outlook.com' }
 
+// `vi.mock` est remonté en haut du fichier : sa fabrique ne peut pas lire une
+// variable déclarée ici. `vi.hoisted` crée l'objet avant elle, ce qui permet de
+// simuler la déconnexion en vidant `comptes` dans un test.
+const etatMsal = vi.hoisted(() => ({ comptes: [] as { homeAccountId: string }[] }))
+
 vi.mock('@azure/msal-react', () => ({
   useMsal: () => ({
     instance: instanceSimulee,
-    accounts: [{ ...compte }],
+    accounts: etatMsal.comptes,
     inProgress: 'none',
   }),
 }))
@@ -103,6 +108,7 @@ async function choisirDossierPour(libelleEmplacement: string, nom: string) {
 beforeEach(() => {
   window.localStorage.clear()
   oublierIdDeMonDrive()
+  etatMsal.comptes = [{ ...compte }]
   instanceSimulee.acquireTokenSilent.mockResolvedValue({
     accessToken: 'jeton-de-test',
   })
@@ -116,6 +122,17 @@ afterEach(() => {
 })
 
 describe('écran de configuration', () => {
+  it('ne montre que le logo et la connexion tant que personne n’est connecté', () => {
+    etatMsal.comptes = []
+    afficher()
+
+    expect(screen.getByRole('img', { name: 'TriPhoto' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Se connecter avec Microsoft' })).toBeInTheDocument()
+    // Les emplacements et le bouton de tri n'ont aucun sens hors connexion.
+    expect(screen.queryByRole('button', { name: /^Dossier à trier/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Commencer le tri' })).not.toBeInTheDocument()
+  })
+
   it('propose les six emplacements à configurer', () => {
     afficher()
 

@@ -126,7 +126,7 @@ export default function EcranAccueil() {
 
   return (
     <main className="ecran">
-      <header>
+      <header className={estConnecte ? undefined : 'entete--grand'}>
         <h1 className="titre-logo">
           <Logo />
         </h1>
@@ -153,27 +153,7 @@ export default function EcranAccueil() {
               />
             ))}
           </ul>
-        ) : (
-          <>
-            <ul className="boussole">
-              {DIRECTIONS.map((info) => (
-                <li key={info.direction} className={`direction direction--${info.direction}`}>
-                  <span
-                    className="direction__pastille"
-                    style={{ backgroundColor: info.couleur }}
-                    aria-hidden="true"
-                  />
-                  <span className="direction__libelle">{info.libelle}</span>
-                </li>
-              ))}
-            </ul>
-
-            <p className="note">
-              Chaque couleur correspond à un dossier de destination. Connectez-vous pour choisir vos
-              dossiers.
-            </p>
-          </>
-        )}
+        ) : null}
       </div>
 
       <div className="pile">

@@ -200,10 +200,14 @@ Retouche d'interface de l'écran de configuration, sans nouvelle fonctionnalité
 - Une configuration enregistrée avant l'arrivée des titres n'en a pas : elle est
   **complétée** à la relecture plutôt que rejetée, pour ne pas faire perdre ses dossiers.
 - Les pastilles de couleur ne sont plus des ronds mais des **formes qui pointent vers
-  leur direction**, sur l'écran de configuration comme sur la boussole d'accueil.
+  leur direction**, sur l'écran de configuration.
 - Le titre « TriPhoto » est remplacé par un logo (`src/ui/Logo.tsx`) : un appareil photo
   entouré des quatre flèches de direction. Les couleurs y sont lues dans
   `src/tri/directions.ts`, jamais réécrites en dur, pour que le logo suive la palette.
+- Avant connexion, l'écran ne montre **que le logo, en grand, et le bouton de
+  connexion**. L'ancienne « boussole » qui listait les quatre directions a été retirée :
+  elle décrivait des dossiers que l'utilisatrice n'avait pas encore choisis, et le logo
+  porte déjà les quatre couleurs.
 
 ## Les dossiers partagés
 
