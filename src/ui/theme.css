@@ -10,6 +10,9 @@
   --vert-eau: #50aca2;
   --bleu: #405885;
   --rose: #e0748b;
+  /* Réservé au bouton « Exit » : c'est la seule action de l'application qui
+     ferme tout, elle ne partage sa couleur avec aucune direction. */
+  --rouge: #d6453f;
 
   --fond: #f7f5f2;
   --texte: var(--bleu);
@@ -99,6 +102,32 @@ button {
 /* Le logo tient lieu de titre de niveau 1 : le mot « TriPhoto » reste dans le SVG. */
 .titre-logo {
   display: flex;
+}
+
+/* Bouton « Exit » : une croix blanche sur pastille rouge, dans le coin haut
+   droit de l'écran de configuration. Fixé à la fenêtre et non au contenu, pour
+   rester atteignable même quand la liste des dossiers défile. */
+.quitter {
+  position: fixed;
+  z-index: 10;
+  top: calc(var(--marge-haut) + 12px);
+  right: calc(var(--marge-droite) + 12px);
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--rouge);
+  color: #ffffff;
+}
+
+.quitter__croix {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
 }
 
 /* Avant connexion l'écran n'a rien à montrer : le logo prend toute la place
@@ -552,8 +581,9 @@ button {
   white-space: nowrap;
 }
 
-/* Seul « Cancel » peut rester durablement inactif, faute de déplacement à
-   annuler : l'estomper est ici une information, pas un défaut d'affichage. */
+/* Seul « Cancel last action » peut rester durablement inactif, faute de
+   déplacement à annuler : l'estomper est ici une information, pas un défaut
+   d'affichage. */
 .tri__coin:disabled {
   cursor: default;
   opacity: 0.35;
@@ -581,7 +611,7 @@ button {
   left: calc(var(--marge-gauche) + 12px);
 }
 
-.tri__coin--annuler {
+.tri__coin--passer {
   top: calc(var(--marge-haut) + 12px);
   right: calc(var(--marge-droite) + 12px);
 }
@@ -591,9 +621,15 @@ button {
   left: calc(var(--marge-gauche) + 12px);
 }
 
-.tri__coin--passer {
+.tri__coin--annuler {
   right: calc(var(--marge-droite) + 12px);
   bottom: calc(var(--marge-bas) + 12px);
+  /* Seul bouton à deux lignes : « Cancel » puis « last action », centrés l'un
+     sous l'autre. Sur une seule ligne il occuperait presque la moitié du bas de
+     l'écran et viendrait toucher la pastille de la direction du bas. */
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
 }
 
 /* --- Les quatre destinations, au milieu de chaque bord --- */

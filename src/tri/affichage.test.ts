@@ -105,15 +105,15 @@ describe('url d’affichage', () => {
 
 describe('date de prise de vue', () => {
   it('écrit la date en toutes lettres', () => {
-    expect(formaterDatePriseDeVue('2024-07-14T10:00:00Z')).toBe('14 juillet 2024')
+    expect(formaterDatePriseDeVue('2024-07-14T10:00:00Z')).toBe('14 July 2024')
   })
 
   it('signale une date absente', () => {
-    expect(formaterDatePriseDeVue(null)).toBe('Date inconnue')
+    expect(formaterDatePriseDeVue(null)).toBe('Unknown date')
   })
 
   it('signale une date illisible plutôt que d’afficher « Invalid Date »', () => {
-    expect(formaterDatePriseDeVue('pas une date')).toBe('Date inconnue')
+    expect(formaterDatePriseDeVue('pas une date')).toBe('Unknown date')
   })
 })
 

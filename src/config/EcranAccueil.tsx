@@ -50,6 +50,11 @@ const MESSAGE_STOCKAGE_REFUSE =
   'prochain rechargement. C’est le cas en navigation privée, ou si le stockage du ' +
   'site est bloqué.'
 
+const MESSAGE_FERMETURE_REFUSEE =
+  'Votre navigateur refuse de fermer un onglet qu’il n’a pas ouvert lui-même. ' +
+  'Fermez-le à la main, ou installez TriPhoto sur l’écran d’accueil : la version ' +
+  'installée se referme normalement.'
+
 export default function EcranAccueil() {
   const { accounts } = useMsal()
   const navigate = useNavigate()
@@ -67,6 +72,21 @@ export default function EcranAccueil() {
   const ouvrirExplorateur = (emplacement: Emplacement) => {
     setAvertissement(null)
     setEmplacementEnCours(emplacement)
+  }
+
+  /**
+   * Ferme l'application. Un navigateur n'autorise `window.close()` que sur les
+   * fenêtres qu'il a lui-même ouvertes : depuis un onglet ordinaire la page
+   * reste donc affichée, et l'on préfère le dire plutôt que de laisser croire à
+   * un bouton cassé. Installée sur l'écran d'accueil, l'application se ferme.
+   */
+  const quitter = () => {
+    window.close()
+    window.setTimeout(() => {
+      if (!window.closed) {
+        setAvertissement(MESSAGE_FERMETURE_REFUSEE)
+      }
+    }, 200)
   }
 
   const choisirDossier = (choisi: DossierChoisi) => {
@@ -100,6 +120,7 @@ export default function EcranAccueil() {
   if (estConnecte && emplacementEnCours !== null) {
     return (
       <main className="ecran">
+        <BoutonQuitter onQuitter={quitter} />
         <header>
           <h1 className="titre">{libelleDe(emplacementEnCours)}</h1>
           <p className="accroche">Ouvrez un dossier, puis validez-le.</p>
@@ -126,6 +147,7 @@ export default function EcranAccueil() {
 
   return (
     <main className={estConnecte ? 'ecran' : 'ecran ecran--accueil'}>
+      <BoutonQuitter onQuitter={quitter} />
       <header className={estConnecte ? undefined : 'entete--grand'}>
         <h1 className="titre-logo">
           <Logo />
@@ -173,6 +195,18 @@ export default function EcranAccueil() {
         <CompteMicrosoft />
       </div>
     </main>
+  )
+}
+
+/** Croix « Exit » du coin haut droit : elle ferme l'application. */
+function BoutonQuitter({ onQuitter }: { onQuitter: () => void }) {
+  return (
+    <button type="button" className="quitter" onClick={onQuitter} aria-label="Exit" title="Exit">
+      <svg className="quitter__croix" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 6 18 18" />
+        <path d="M18 6 6 18" />
+      </svg>
+    </button>
   )
 }
 

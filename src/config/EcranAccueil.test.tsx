@@ -361,3 +361,55 @@ describe('écran de configuration', () => {
     expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeInTheDocument()
   })
 })
+
+describe('bouton Exit', () => {
+  it('ferme l’application', async () => {
+    const fermer = vi.spyOn(window, 'close').mockImplementation(() => {})
+    afficher()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Exit' }))
+
+    expect(fermer).toHaveBeenCalled()
+  })
+
+  it('est proposé avant même la connexion', () => {
+    etatMsal.comptes = []
+    afficher()
+
+    expect(screen.getByRole('button', { name: 'Exit' })).toBeInTheDocument()
+  })
+
+  it('reste proposé pendant le choix d’un dossier', async () => {
+    afficher()
+
+    await userEvent.click(screen.getByRole('button', { name: /^Dossier à trier/ }))
+
+    expect(await screen.findByRole('button', { name: 'Exit' })).toBeInTheDocument()
+  })
+
+  it('prévient quand le navigateur refuse de fermer l’onglet', async () => {
+    vi.spyOn(window, 'close').mockImplementation(() => {})
+    afficher()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Exit' }))
+
+    expect(await screen.findByText(/refuse de fermer un onglet/)).toBeInTheDocument()
+  })
+
+  it('ne dit rien quand la fenêtre s’est bien fermée', async () => {
+    vi.spyOn(window, 'close').mockImplementation(() => {})
+    // jsdom ne ferme jamais sa fenêtre : on force `closed` pour jouer le succès.
+    const descripteur = Object.getOwnPropertyDescriptor(window, 'closed')
+    Object.defineProperty(window, 'closed', { value: true, configurable: true })
+    try {
+      afficher()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Exit' }))
+      await new Promise((resolve) => setTimeout(resolve, 300))
+
+      expect(screen.queryByText(/refuse de fermer un onglet/)).not.toBeInTheDocument()
+    } finally {
+      Object.defineProperty(window, 'closed', descripteur ?? { value: false, configurable: true })
+    }
+  })
+})

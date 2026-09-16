@@ -35,8 +35,8 @@ type Deplacement = {
  * On affiche les médias du dossier à trier, un par un, du plus ancien au plus
  * récent. On swipe le média vers l'un des quatre dossiers de destination, ou
  * l'on utilise les boutons des coins : « Delete » l'envoie vers la Poubelle,
- * « Cancel » ramène le dernier média déplacé, « Skip » passe au suivant sans
- * rien déplacer.
+ * « Cancel last action » ramène le dernier média déplacé, « Skip » passe au
+ * suivant sans rien déplacer.
  */
 export default function EcranTri() {
   const { instance, accounts } = useMsal()
@@ -87,11 +87,11 @@ export default function EcranTri() {
   if (!peutCommencerLeTri(configuration) || source === null || configuration.poubelle === null) {
     return (
       <EcranMessage
-        titre="Tri impossible"
-        message="Choisissez un dossier à trier, un dossier poubelle et au moins une destination avant de commencer."
+        titre="Cannot sort"
+        message="Choose a folder to sort, a trash folder and at least one destination before starting."
       >
         <Link className="action" to="/">
-          Aller à la configuration
+          Go to settings
         </Link>
       </EcranMessage>
     )
@@ -99,23 +99,23 @@ export default function EcranTri() {
 
   if (!compte) {
     return (
-      <EcranMessage titre="Tri impossible" message="Connectez-vous pour trier vos médias.">
+      <EcranMessage titre="Cannot sort" message="Sign in to sort your media.">
         <Link className="action" to="/">
-          Aller à la configuration
+          Go to settings
         </Link>
       </EcranMessage>
     )
   }
 
   if (etat.statut === 'chargement') {
-    return <EcranMessage titre="Tri" message={`Lecture de « ${source.nom} »…`} />
+    return <EcranMessage titre="Sorting" message={`Reading “${source.nom}”…`} />
   }
 
   if (etat.statut === 'sessionExpiree') {
     return (
       <EcranMessage
-        titre="Session expirée"
-        message="Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation."
+        titre="Session expired"
+        message="Your Microsoft session has expired, or TriPhoto needs to be authorized again."
       >
         <button
           type="button"
@@ -126,7 +126,7 @@ export default function EcranTri() {
             })
           }}
         >
-          Se reconnecter
+          Sign in again
         </button>
       </EcranMessage>
     )
@@ -134,12 +134,12 @@ export default function EcranTri() {
 
   if (etat.statut === 'erreur') {
     return (
-      <EcranMessage titre="Tri interrompu" message={etat.message}>
+      <EcranMessage titre="Sorting stopped" message={etat.message}>
         <button type="button" className="action" onClick={() => setTentative(tentative + 1)}>
-          Réessayer
+          Try again
         </button>
         <Link className="action action--discrete" to="/">
-          Retour à la configuration
+          Back to settings
         </Link>
       </EcranMessage>
     )
@@ -190,11 +190,11 @@ export default function EcranTri() {
   if (medias.length === 0) {
     return (
       <EcranMessage
-        titre="Rien à trier"
-        message={`« ${source.nom} » ne contient aucune photo ni vidéo.`}
+        titre="Nothing to sort"
+        message={`“${source.nom}” contains no photos or videos.`}
       >
         <Link className="action" to="/">
-          Retour à la configuration
+          Back to settings
         </Link>
       </EcranMessage>
     )
@@ -202,18 +202,19 @@ export default function EcranTri() {
 
   if (index >= medias.length) {
     return (
-      <EcranMessage titre="Tri terminé" message={decrireFin(medias.length)}>
+      <EcranMessage titre="Sorting complete" message={decrireFin(medias.length)}>
         {/*
-          Annuler reste possible ici : sans ce bouton, le dernier média envoyé à
-          la poubelle ne pourrait plus jamais être récupéré depuis TriPhoto.
+          « Cancel last action » reste possible ici : sans ce bouton, le dernier
+          média envoyé à la poubelle ne pourrait plus jamais être récupéré depuis
+          TriPhoto.
         */}
         {dernierDeplacement === null ? null : (
           <button type="button" className="action" onClick={annulerDernierDeplacement}>
-            Cancel
+            Cancel last action
           </button>
         )}
         <button type="button" className="action" onClick={() => setIndex(0)}>
-          Tout revoir
+          Review again
         </button>
         {erreurDeplacement === null ? null : (
           <p className="note" role="alert">
@@ -221,7 +222,7 @@ export default function EcranTri() {
           </p>
         )}
         <Link className="action action--discrete" to="/">
-          Retour à la configuration
+          Back to settings
         </Link>
       </EcranMessage>
     )
@@ -282,7 +283,7 @@ export default function EcranTri() {
 
       {/*
         Le média suivant est demandé au navigateur dès maintenant, hors de
-        l'écran : sans cela chaque « Passer » afficherait un cadre vide le temps
+        l'écran : sans cela chaque « Skip » afficherait un cadre vide le temps
         du téléchargement.
       */}
       {suivant ? <PrechargementMedia media={suivant} /> : null}
@@ -303,8 +304,8 @@ export default function EcranTri() {
       </Link>
 
       {/*
-        Seul « Cancel » peut être inactif : il n'a rien à annuler tant qu'aucun
-        média n'a été envoyé à la poubelle.
+        Seul « Cancel last action » peut être inactif : il n'a rien à annuler
+        tant qu'aucun média n'a été envoyé à la poubelle.
       */}
       <button
         type="button"
@@ -312,7 +313,10 @@ export default function EcranTri() {
         onClick={annulerDernierDeplacement}
         disabled={dernierDeplacement === null}
       >
-        Cancel
+        {/* Coupé en deux lignes : d'un seul tenant, le libellé barrerait le bas
+            de l'écran et toucherait la pastille de la direction du bas. */}
+        <span>Cancel</span>
+        <span>last action</span>
       </button>
 
       <button type="button" className="tri__coin tri__coin--poubelle" onClick={envoyerALaPoubelle}>
@@ -378,9 +382,7 @@ function CarteMedia({ media }: { media: MediaOneDrive }) {
 
   if (url === null) {
     return (
-      <p className="tri__sans-media">
-        Ce média ne peut pas être affiché : OneDrive n'a pas fourni de lien.
-      </p>
+      <p className="tri__sans-media">This item cannot be shown: OneDrive did not provide a link.</p>
     )
   }
 
@@ -411,15 +413,15 @@ function PrechargementMedia({ media }: { media: MediaOneDrive }) {
 }
 
 function decrireFin(nombre: number): string {
-  return nombre === 1 ? '1 média passé en revue.' : `${nombre} médias passés en revue.`
+  return nombre === 1 ? '1 item reviewed.' : `${nombre} items reviewed.`
 }
 
 function decrireErreur(erreur: unknown): string {
-  const detail = erreur instanceof Error ? erreur.message : 'raison inconnue'
-  return `Impossible de lire les médias de ce dossier : ${detail}`
+  const detail = erreur instanceof Error ? erreur.message : 'unknown reason'
+  return `Could not read the media in this folder: ${detail}`
 }
 
 function decrireEchecDeplacement(erreur: unknown): string {
-  const detail = erreur instanceof Error ? erreur.message : 'raison inconnue'
-  return `Le déplacement a échoué : ${detail} Le média est resté en place, vous pouvez réessayer.`
+  const detail = erreur instanceof Error ? erreur.message : 'unknown reason'
+  return `The move failed: ${detail} The item stayed where it was, you can try again.`
 }
