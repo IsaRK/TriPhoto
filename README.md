@@ -227,12 +227,19 @@ sa configuration tient en deux règles, toutes deux dans `src/pwa/configurationP
   que les fichiers de l'application. C'est volontaire : une liste de médias gardée en
   cache proposerait de trier des photos déjà déplacées, et les réponses Graph contiennent
   des données privées qui n'ont rien à faire dans le stockage du navigateur.
-- **Une mise à jour ne s'installe jamais par-dessus un tri en cours.** Le mode
-  `autoUpdate` du plugin a été écarté parce qu'il force `skipWaiting` : une version
-  publiée pendant que l'application est ouverte remplacerait les fichiers sous les pieds
-  de la page. Ici la nouvelle version attend la fermeture de l'application. Un tri en
-  cours — et donc la pile d'annulation — survit à un déploiement. En contrepartie, une
-  mise à jour peut mettre un lancement ou deux à apparaître.
+- **Une nouvelle version s'installe d'elle-même, mais ne coupe jamais un tri en cours.**
+  Le mode `autoUpdate` du plugin pose `skipWaiting` et `clientsClaim` : le service worker
+  fraîchement téléchargé s'active immédiatement. Le mode par défaut avait d'abord été
+  retenu, en pensant que la version en attente s'activerait à la fermeture de
+  l'application — c'était une erreur. Une PWA posée sur l'écran d'accueil n'est
+  pratiquement jamais fermée, elle reste dans les tâches récentes du téléphone : la
+  version en attente ne s'activait donc **jamais**, et on triait indéfiniment avec
+  l'ancienne, sans rien pour le signaler.
+- **La page se recharge quand la nouvelle version prend la main** (`src/pwa/serviceWorker.ts`),
+  sauf dans deux cas : au tout premier chargement, où aucune version ne contrôlait encore
+  la page — ce n'est pas une mise à jour —, et **pendant un tri**, parce que le média
+  affiché et la pile d'annulation vivent en mémoire. La nouvelle version attend alors le
+  retour à l'écran de configuration.
 
 ### Régénérer les icônes
 
@@ -257,6 +264,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 7 | Mise en ligne : GitHub Pages, workflow GitHub Actions | ✅ Terminé |
 | Lot 8 | PWA : manifeste, icônes, service worker, installation sur le téléphone | ✅ Terminé |
 | Lot 9 | Écran de tri entièrement en anglais, coins réorganisés, bouton `Exit` | ✅ Terminé |
+| Lot 10 | Mises à jour qui arrivent vraiment sur le téléphone | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -495,8 +503,9 @@ L'application devient installable, ce qui est décrit du point de vue de l'usage
   rogne les icônes selon la forme du lanceur.
 - `index.html` déclare en plus `apple-touch-icon` : iOS ignore les icônes du manifeste et
   mettrait sinon une capture de la page sur l'écran d'accueil.
-- Ni Graph en cache, ni mise à jour forcée : les deux décisions sont expliquées dans
-  « Ce que le service worker met en cache », et chacune est tenue par un test.
+- Ni Graph en cache, ni mise à jour subie en plein tri : les deux décisions sont
+  expliquées dans « Ce que le service worker met en cache », et chacune est tenue par un
+  test.
 
 ### Contenu du Lot 9
 
@@ -525,6 +534,28 @@ Retouches d'interface demandées à l'usage, sans nouvel appel Graph.
   sur l'écran d'accueil, l'application se ferme normalement.
 - Le rouge du bouton `Exit` est la seule couleur ajoutée à la palette. Elle n'est partagée
   avec aucune direction : c'est la seule action qui ferme tout.
+
+### Contenu du Lot 10
+
+Correction d'un vrai défaut, découvert à l'usage : **les mises à jour n'arrivaient jamais
+sur le téléphone**. L'application installée continuait d'afficher indéfiniment la version
+du jour de son installation. Le détail du mécanisme et des garde-fous est dans « Ce que le
+service worker met en cache, et ce qu'il ne met pas ».
+
+- Le service worker passe en `autoUpdate` : la version téléchargée s'active au lieu
+  d'attendre une fermeture qui n'arrive jamais sur un téléphone.
+- La page se recharge quand la nouvelle version prend la main, sauf pendant un tri et sauf
+  à la première installation.
+- Quatre tests couvrent ces règles, et deux mutations (retrait de la garde anti-boucle,
+  retrait de la garde du tri en cours) les font bien échouer.
+
+#### Passer à cette version sur un téléphone déjà équipé
+
+L'ancienne version installée ne sait pas encore se mettre à jour toute seule ; c'est
+précisément ce qui est corrigé ici. Une fois : ouvrir TriPhoto, **attendre une dizaine de
+secondes** que la nouvelle version se télécharge, fermer complètement l'application (la
+retirer des applications récentes, pas seulement revenir à l'écran d'accueil), puis la
+rouvrir. Les mises à jour suivantes arriveront d'elles-mêmes.
 
 ### Titres courts et formes directionnelles
 
