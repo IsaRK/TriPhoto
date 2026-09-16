@@ -265,6 +265,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 8 | PWA : manifeste, icônes, service worker, installation sur le téléphone | ✅ Terminé |
 | Lot 9 | Écran de tri entièrement en anglais, coins réorganisés, bouton `Exit` | ✅ Terminé |
 | Lot 10 | Mises à jour qui arrivent vraiment sur le téléphone | ✅ Terminé |
+| Lot 11 | Interface entièrement en anglais, écran de configuration compris | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -330,11 +331,11 @@ dossier.
   l'écran de tri
 - Un même dossier ne peut pas occuper deux emplacements : il serait à la fois source
   et destination, et le tri tournerait en rond
-- « Commencer le tri » reste désactivé tant qu'un dossier source et au moins une
+- « Start sorting » reste désactivé tant qu'un dossier source et au moins une
   destination ne sont pas choisis
 - Chaque emplacement peut être vidé individuellement
 
-La poubelle est facultative pour démarrer le tri ; le bouton « Supprimer » de l'écran
+La poubelle est facultative pour démarrer le tri ; le bouton « Delete » de l'écran
 de tri sera simplement indisponible tant qu'elle n'est pas choisie.
 
 ### Contenu du Lot 4
@@ -516,9 +517,8 @@ Retouches d'interface demandées à l'usage, sans nouvel appel Graph.
   terminé ». Tout ce que cet écran affiche est passé à l'anglais — titres, messages
   d'erreur, écrans « Nothing to sort », « Sorting complete », « Session expired », jusqu'à
   la date de prise de vue, formatée en `en-GB` (`14 July 2024`) et non plus en `fr-FR`.
-- **L'écran de configuration reste en français**, à l'exception de `Connect with
-  Microsoft` et du nouveau bouton `Exit` : c'est l'écran que l'on ne voit qu'au réglage,
-  là où le tri est l'écran du quotidien.
+- **L'écran de configuration restait en français** à ce stade, à l'exception de `Connect
+  with Microsoft` et du nouveau bouton `Exit`. Il est passé en anglais au Lot 11.
 - **Les coins ont été réorganisés** : `Skip` passe en haut à droite et
   `Cancel last action` en bas à droite. Les deux boutons qui font avancer le tri (`Delete`,
   `Skip`) se retrouvent ainsi aux extrémités opposées, et l'annulation n'est plus voisine
@@ -556,6 +556,35 @@ précisément ce qui est corrigé ici. Une fois : ouvrir TriPhoto, **attendre un
 secondes** que la nouvelle version se télécharge, fermer complètement l'application (la
 retirer des applications récentes, pas seulement revenir à l'écran d'accueil), puis la
 rouvrir. Les mises à jour suivantes arriveront d'elles-mêmes.
+
+### Contenu du Lot 11
+
+**Toute l'interface est maintenant en anglais**, écran de configuration compris. Le Lot 9
+n'avait traduit que l'écran de tri, ce qui laissait une application à deux langues selon
+l'écran.
+
+- Écran de configuration : libellés des six emplacements (`Folder to sort`, `Left`,
+  `Right`, `Up`, `Down`, `Trash`), `Short title`, `No folder`, `Start sorting`, `Cancel`,
+  et les messages qui expliquent ce qui manque encore.
+- Explorateur de dossiers : `Loading folders…`, `Choose this folder`, `This folder has no
+  subfolder.`, `shared`, `empty`, `1 item` / `N items`, fil d'Ariane.
+- Compte Microsoft : `Signing in…`, `Signed in as`, `Sign out`, `Sign in again`,
+  `Try again`, et l'écran de démarrage (`Starting…`, `Incomplete configuration`,
+  `Startup failed`).
+- Messages d'erreur de la couche Graph (`src/graph/*.ts`) : ils remontent tels quels à
+  l'écran, les laisser en français aurait ramené du français au milieu de l'anglais.
+- `index.html` et le manifeste passent en `lang: 'en'`, avec une description traduite : la
+  langue déclarée doit correspondre à celle de la page, et la description s'affiche au
+  moment de l'installation.
+- Le `libelle` des directions est traduit dans `src/tri/directions.ts`, qui reste la source
+  de vérité unique. Les titres courts, eux, sont saisis par l'utilisatrice et ne sont
+  traduits par personne.
+- **Le bouton `Exit` n'apparaît plus avant la connexion** : l'écran d'accueil ne montre
+  alors que le logo et `Connect with Microsoft`, une croix de fermeture y serait la seule
+  autre chose à cliquer.
+
+Le code, les commentaires et cette documentation restent en français : c'est l'interface
+qui est en anglais, pas le projet.
 
 ### Titres courts et formes directionnelles
 

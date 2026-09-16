@@ -164,7 +164,10 @@ describe('lecture des médias d’un dossier', () => {
       reponse({
         value: [
           photo('photo-2020', '2020-07-14T12:00:00Z'),
-          video('film-2019', { surAppareil: '2019-08-01T12:00:00Z', envoiOneDrive: '2024-06-01T10:00:00Z' }),
+          video('film-2019', {
+            surAppareil: '2019-08-01T12:00:00Z',
+            envoiOneDrive: '2024-06-01T10:00:00Z',
+          }),
         ],
       }),
     )
@@ -213,7 +216,10 @@ describe('lecture des médias d’un dossier', () => {
     const element = {
       ...photo('a'),
       thumbnails: [
-        { c1600x1600: { url: 'https://miniature/sur-mesure' }, large: { url: 'https://miniature/large' } },
+        {
+          c1600x1600: { url: 'https://miniature/sur-mesure' },
+          large: { url: 'https://miniature/large' },
+        },
       ],
     }
     simulerAppels(reponse({ value: [element] }))
@@ -227,7 +233,7 @@ describe('lecture des médias d’un dossier', () => {
     simulerAppels(reponse({}, { ok: false, status: 403 }))
 
     await expect(listerMedias('jeton', 'mon-drive', 'dossier-1')).rejects.toThrow(
-      'Microsoft Graph a refusé la lecture des médias (code 403).',
+      'Microsoft Graph refused to read the media (code 403).',
     )
   })
 
@@ -241,7 +247,7 @@ describe('lecture des médias d’un dossier', () => {
     )
 
     await expect(listerMedias('jeton', 'mon-drive', 'dossier-1')).rejects.toThrow(
-      'Microsoft Graph a refusé la lecture des médias (code 503).',
+      'Microsoft Graph refused to read the media (code 503).',
     )
   })
 

@@ -62,7 +62,9 @@ describe('lecture des dossiers OneDrive', () => {
     await listerSousDossiers('jeton-de-test', 'drive-a-moi', '01ABC/DEF')
 
     const [url] = fetchSimule.mock.calls[1]
-    expect(url).toContain('https://graph.microsoft.com/v1.0/drives/drive-a-moi/items/01ABC%2FDEF/children')
+    expect(url).toContain(
+      'https://graph.microsoft.com/v1.0/drives/drive-a-moi/items/01ABC%2FDEF/children',
+    )
   })
 
   it('marque comme partagé tout dossier vivant dans un autre drive', async () => {

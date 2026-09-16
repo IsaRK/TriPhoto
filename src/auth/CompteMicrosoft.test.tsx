@@ -70,7 +70,7 @@ describe('bloc compte Microsoft', () => {
     render(<CompteMicrosoft />)
 
     expect(screen.queryByRole('button', { name: 'Connect with Microsoft' })).not.toBeInTheDocument()
-    expect(screen.getByText('Connexion en cours…')).toBeInTheDocument()
+    expect(screen.getByText('Signing in…')).toBeInTheDocument()
   })
 
   it('affiche le nom renvoyé par Graph quand un compte est connecté', async () => {
@@ -115,7 +115,7 @@ describe('bloc compte Microsoft', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reponseGraph({ displayName: 'Alice Martin' })))
 
     render(<CompteMicrosoft />)
-    await userEvent.click(await screen.findByRole('button', { name: 'Se déconnecter' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
 
     expect(instanceSimulee.logoutRedirect).toHaveBeenCalled()
   })
@@ -138,7 +138,7 @@ describe('bloc compte Microsoft', () => {
     vi.stubGlobal('fetch', fetchSimule)
 
     render(<CompteMicrosoft />)
-    await userEvent.click(await screen.findByRole('button', { name: 'Réessayer' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Try again' }))
 
     expect(await screen.findByText('Alice Martin')).toBeInTheDocument()
     expect(fetchSimule).toHaveBeenCalledTimes(2)
@@ -162,11 +162,11 @@ describe('bloc compte Microsoft', () => {
     vi.stubGlobal('fetch', vi.fn())
 
     render(<CompteMicrosoft />)
-    const bouton = await screen.findByRole('button', { name: 'Se reconnecter' })
+    const bouton = await screen.findByRole('button', { name: 'Sign in again' })
 
     expect(
       screen.getByText(
-        "Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation.",
+        'Your Microsoft session has expired, or TriPhoto needs a new authorisation.',
       ),
     ).toBeInTheDocument()
     expect(instanceSimulee.loginRedirect).not.toHaveBeenCalled()

@@ -32,7 +32,7 @@ export async function recupererProfil(jetonAcces: string): Promise<ProfilUtilisa
   })
 
   if (!reponse.ok) {
-    throw new Error(`Microsoft Graph a refusé la requête /me (code ${reponse.status}).`)
+    throw new Error(`Microsoft Graph refused the /me request (code ${reponse.status}).`)
   }
 
   const donnees = (await reponse.json()) as ReponseGraphMe

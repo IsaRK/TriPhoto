@@ -57,14 +57,12 @@ export async function lireIdDeMonDrive(jetonAcces: string): Promise<string> {
   })
 
   if (!reponse.ok) {
-    throw new Error(
-      `Microsoft Graph a refusé la lecture de votre OneDrive (code ${reponse.status}).`,
-    )
+    throw new Error(`Microsoft Graph refused to read your OneDrive (code ${reponse.status}).`)
   }
 
   const drive = (await reponse.json()) as { id?: string }
   if (!drive.id) {
-    throw new Error('Microsoft Graph n’a pas renvoyé l’identifiant de votre OneDrive.')
+    throw new Error('Microsoft Graph did not return your OneDrive identifier.')
   }
 
   idMonDriveMemorise = drive.id
@@ -119,7 +117,7 @@ async function listerDossiers(
     })
 
     if (!reponse.ok) {
-      throw new Error(`Microsoft Graph a refusé la lecture du dossier (code ${reponse.status}).`)
+      throw new Error(`Microsoft Graph refused to read the folder (code ${reponse.status}).`)
     }
 
     const page = (await reponse.json()) as ReponseChildren

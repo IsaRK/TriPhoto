@@ -12,8 +12,8 @@ import type { VitePWAOptions } from 'vite-plugin-pwa'
 export const MANIFESTE: Partial<ManifestOptions> = {
   name: 'TriPhoto',
   short_name: 'TriPhoto',
-  description: 'Trier ses photos et vidéos OneDrive d’un simple geste.',
-  lang: 'fr',
+  description: 'Sort your OneDrive photos and videos with a swipe.',
+  lang: 'en',
   // `standalone` retire la barre d'adresse : l'application lancée depuis l'écran
   // d'accueil ressemble à une application installée, et les gestes de swipe ne
   // risquent plus de déclencher le retour arrière du navigateur.

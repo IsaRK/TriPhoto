@@ -47,7 +47,7 @@ export default function ExplorateurDossiers({
     if (!compte) {
       setEtat({
         statut: 'erreur',
-        message: 'Connectez-vous pour parcourir vos dossiers.',
+        message: 'Sign in to browse your folders.',
       })
       return
     }
@@ -106,7 +106,7 @@ export default function ExplorateurDossiers({
 
   return (
     <section className="explorateur">
-      <nav className="fil-ariane" aria-label="Chemin du dossier">
+      <nav className="fil-ariane" aria-label="Folder path">
         {chemin.map((etape, index) => (
           <Fragment key={etape.id ?? 'racine'}>
             {index > 0 ? (
@@ -126,15 +126,15 @@ export default function ExplorateurDossiers({
         ))}
       </nav>
 
-      {etat.statut === 'chargement' ? <p className="note">Chargement des dossiers…</p> : null}
+      {etat.statut === 'chargement' ? <p className="note">Loading folders…</p> : null}
 
       {etat.statut === 'sessionExpiree' ? (
         <div className="pile">
           <p className="note">
-            Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation.
+            Your Microsoft session has expired, or TriPhoto needs a new authorisation.
           </p>
           <button type="button" className="action action--discrete" onClick={reconnecter}>
-            Se reconnecter
+            Sign in again
           </button>
         </div>
       ) : null}
@@ -147,13 +147,13 @@ export default function ExplorateurDossiers({
             className="action action--discrete"
             onClick={() => setTentative(tentative + 1)}
           >
-            Réessayer
+            Try again
           </button>
         </div>
       ) : null}
 
       {etat.statut === 'prete' && etat.dossiers.length === 0 ? (
-        <p className="note">Ce dossier ne contient aucun sous-dossier.</p>
+        <p className="note">This folder has no subfolder.</p>
       ) : null}
 
       {etat.statut === 'prete' && etat.dossiers.length > 0 ? (
@@ -163,7 +163,7 @@ export default function ExplorateurDossiers({
               <button type="button" className="dossier" onClick={() => ouvrir(dossier)}>
                 <span className="dossier__nom">{dossier.nom}</span>
                 <span className="dossier__compte">
-                  {dossier.partage ? 'partagé · ' : ''}
+                  {dossier.partage ? 'shared · ' : ''}
                   {decrireContenu(dossier.nombreEnfants)}
                 </span>
               </button>
@@ -173,14 +173,13 @@ export default function ExplorateurDossiers({
       ) : null}
 
       <button type="button" className="action" onClick={choisir} disabled={idCourant === null}>
-        Choisir ce dossier
+        Choose this folder
       </button>
 
       {idCourant === null ? (
         <p className="note">
-          Ouvrez un dossier pour pouvoir le choisir. Un dossier partagé par quelqu'un d'autre
-          n'apparaît ici qu'après un « Ajouter un raccourci à Mes fichiers » depuis
-          onedrive.live.com.
+          Open a folder to be able to choose it. A folder shared by someone else only shows up here
+          after an “Add shortcut to My files” from onedrive.live.com.
         </p>
       ) : null}
     </section>
@@ -189,12 +188,12 @@ export default function ExplorateurDossiers({
 
 function decrireContenu(nombreEnfants: number): string {
   if (nombreEnfants === 0) {
-    return 'vide'
+    return 'empty'
   }
-  return nombreEnfants === 1 ? '1 élément' : `${nombreEnfants} éléments`
+  return nombreEnfants === 1 ? '1 item' : `${nombreEnfants} items`
 }
 
 function decrireErreur(erreur: unknown): string {
-  const detail = erreur instanceof Error ? erreur.message : 'raison inconnue'
-  return `Impossible de lire vos dossiers OneDrive : ${detail}`
+  const detail = erreur instanceof Error ? erreur.message : 'unknown reason'
+  return `Unable to read your OneDrive folders: ${detail}`
 }

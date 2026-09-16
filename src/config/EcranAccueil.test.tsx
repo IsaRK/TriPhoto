@@ -96,13 +96,13 @@ function afficher() {
 
 /**
  * Parcourt l'explorateur jusqu'à valider le dossier racine nommé `nom`.
- * Le libellé est ancré au début : sinon « Gauche » trouverait aussi le bouton
- * « Retirer le dossier de « Gauche » » dès que l'emplacement est rempli.
+ * Le libellé est ancré au début : sinon « Left » trouverait aussi le bouton
+ * « Remove the folder for « Left » » dès que l'emplacement est rempli.
  */
 async function choisirDossierPour(libelleEmplacement: string, nom: string) {
   await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${libelleEmplacement}`) }))
   await userEvent.click(await screen.findByRole('button', { name: new RegExp(nom) }))
-  await userEvent.click(screen.getByRole('button', { name: 'Choisir ce dossier' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Choose this folder' }))
 }
 
 beforeEach(() => {
@@ -129,8 +129,8 @@ describe('écran de configuration', () => {
     expect(screen.getByRole('img', { name: 'TriPhoto' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Connect with Microsoft' })).toBeInTheDocument()
     // Les emplacements et le bouton de tri n'ont aucun sens hors connexion.
-    expect(screen.queryByRole('button', { name: /^Dossier à trier/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Commencer le tri' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Folder to sort/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Start sorting' })).not.toBeInTheDocument()
   })
 
   // Le CSS ne s'applique pas en test : on verrouille les deux classes qui portent
@@ -154,7 +154,7 @@ describe('écran de configuration', () => {
   it('propose les six emplacements à configurer', () => {
     afficher()
 
-    for (const libelle of ['Dossier à trier', 'Gauche', 'Droite', 'Haut', 'Bas', 'Poubelle']) {
+    for (const libelle of ['Folder to sort', 'Left', 'Right', 'Up', 'Down', 'Trash']) {
       expect(screen.getByRole('button', { name: new RegExp(`^${libelle}`) })).toBeInTheDocument()
     }
   })
@@ -174,13 +174,13 @@ describe('écran de configuration', () => {
     enregistrer({ source: dossier('photos', 'Photos') })
     afficher()
 
-    expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Start sorting' })).toBeDisabled()
   })
 
   it('enregistre le dossier choisi pour la source', async () => {
     afficher()
 
-    await choisirDossierPour('Dossier à trier', 'Photos')
+    await choisirDossierPour('Folder to sort', 'Photos')
 
     expect(configurationEnregistree().source).toEqual(dossier('photos', 'Photos'))
     expect(screen.getByText('OneDrive / Photos')).toBeInTheDocument()
@@ -190,9 +190,9 @@ describe('écran de configuration', () => {
     enregistrer({ source: dossier('photos', 'Photos') })
     afficher()
 
-    await choisirDossierPour('Gauche', 'Photos')
+    await choisirDossierPour('Left', 'Photos')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Dossier à trier')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Folder to sort')
     expect(configurationEnregistree().gauche).toBeNull()
   })
 
@@ -200,7 +200,7 @@ describe('écran de configuration', () => {
     enregistrer({ source: dossier('photos', 'Photos') })
     afficher()
 
-    await choisirDossierPour('Gauche', 'Vacances')
+    await choisirDossierPour('Left', 'Vacances')
 
     expect(configurationEnregistree().gauche).toEqual(dossier('vacances', 'Vacances'))
   })
@@ -212,7 +212,7 @@ describe('écran de configuration', () => {
     })
     afficher()
 
-    await choisirDossierPour('Gauche', 'Famille')
+    await choisirDossierPour('Left', 'Famille')
 
     expect(configurationEnregistree().gauche).toEqual(dossier('famille', 'Famille'))
   })
@@ -224,7 +224,7 @@ describe('écran de configuration', () => {
     })
     afficher()
 
-    await userEvent.click(screen.getByRole('button', { name: /Retirer le dossier de . Gauche/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Remove the folder for .Left/ }))
 
     expect(configurationEnregistree().gauche).toBeNull()
     expect(configurationEnregistree().source).toEqual(dossier('photos', 'Photos'))
@@ -234,9 +234,9 @@ describe('écran de configuration', () => {
     enregistrer({ source: dossier('photos', 'Photos') })
     afficher()
 
-    await choisirDossierPour('Gauche', 'Vacances')
+    await choisirDossierPour('Left', 'Vacances')
 
-    expect(screen.getByRole('textbox', { name: /Titre court de . Gauche/ })).toHaveValue('Vacances')
+    expect(screen.getByRole('textbox', { name: /Short title for .Left/ })).toHaveValue('Vacances')
   })
 
   it('n’offre un titre court que sur les quatre directions', () => {
@@ -253,7 +253,7 @@ describe('écran de configuration', () => {
     const champs = screen.getAllByRole('textbox')
 
     expect(champs).toHaveLength(4)
-    expect(screen.queryByRole('textbox', { name: /Dossier à trier/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /Folder to sort/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /Poubelle/ })).not.toBeInTheDocument()
   })
 
@@ -265,7 +265,7 @@ describe('écran de configuration', () => {
     afficher()
 
     const champ = screen.getByRole('textbox', {
-      name: /Titre court de . Gauche/,
+      name: /Short title for .Left/,
     })
     await userEvent.clear(champ)
     await userEvent.type(champ, 'Été 2024')
@@ -282,7 +282,7 @@ describe('écran de configuration', () => {
     afficher()
 
     const champ = screen.getByRole('textbox', {
-      name: /Titre court de . Gauche/,
+      name: /Short title for .Left/,
     })
     await userEvent.clear(champ)
     await userEvent.tab()
@@ -297,7 +297,7 @@ describe('écran de configuration', () => {
     })
     afficher()
 
-    expect(screen.getByRole('textbox', { name: /Titre court de . Gauche/ })).toHaveAttribute(
+    expect(screen.getByRole('textbox', { name: /Short title for .Left/ })).toHaveAttribute(
       'maxlength',
       String(TITRE_LONGUEUR_MAX),
     )
@@ -309,34 +309,34 @@ describe('écran de configuration', () => {
     })
     afficher()
 
-    await choisirDossierPour('Dossier à trier', 'Photos')
+    await choisirDossierPour('Folder to sort', 'Photos')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('refuse d’enregistrer')
+    expect(await screen.findByRole('alert')).toHaveTextContent('refuses to save the configuration')
   })
 
   it('retrouve les dossiers choisis après un rechargement de la page', async () => {
     const premierAffichage = afficher()
 
-    await choisirDossierPour('Dossier à trier', 'Photos')
-    await choisirDossierPour('Gauche', 'Vacances')
-    await choisirDossierPour('Poubelle', 'Famille')
+    await choisirDossierPour('Folder to sort', 'Photos')
+    await choisirDossierPour('Left', 'Vacances')
+    await choisirDossierPour('Trash', 'Famille')
 
     premierAffichage.unmount()
     afficher()
 
     expect(screen.getByText('OneDrive / Photos')).toBeInTheDocument()
     expect(screen.getByText('OneDrive / Vacances')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Start sorting' })).toBeEnabled()
   })
 
   it('laisse « Commencer le tri » grisé tant que la poubelle manque', async () => {
     afficher()
 
-    await choisirDossierPour('Dossier à trier', 'Photos')
-    await choisirDossierPour('Gauche', 'Vacances')
+    await choisirDossierPour('Folder to sort', 'Photos')
+    await choisirDossierPour('Left', 'Vacances')
 
-    expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeDisabled()
-    expect(screen.getByText('Il manque le dossier Poubelle.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start sorting' })).toBeDisabled()
+    expect(screen.getByText('The Trash folder is missing.')).toBeInTheDocument()
   })
 
   it('relit la configuration enregistrée et mène à l’écran de tri', async () => {
@@ -347,7 +347,7 @@ describe('écran de configuration', () => {
     })
     afficher()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Commencer le tri' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Start sorting' }))
 
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Tri')
   })
@@ -355,10 +355,10 @@ describe('écran de configuration', () => {
   it('revient à la liste des emplacements quand on annule le choix', async () => {
     afficher()
 
-    await userEvent.click(screen.getByRole('button', { name: /Dossier à trier/ }))
-    await userEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+    await userEvent.click(screen.getByRole('button', { name: /Folder to sort/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    expect(screen.getByRole('button', { name: 'Commencer le tri' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start sorting' })).toBeInTheDocument()
   })
 })
 
@@ -372,17 +372,19 @@ describe('bouton Exit', () => {
     expect(fermer).toHaveBeenCalled()
   })
 
-  it('est proposé avant même la connexion', () => {
+  it('n’est pas proposé avant la connexion', () => {
+    // L'écran d'accueil ne montre alors que le logo et le bouton de connexion :
+    // une croix de fermeture y serait la seule autre chose à cliquer.
     etatMsal.comptes = []
     afficher()
 
-    expect(screen.getByRole('button', { name: 'Exit' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Exit' })).not.toBeInTheDocument()
   })
 
   it('reste proposé pendant le choix d’un dossier', async () => {
     afficher()
 
-    await userEvent.click(screen.getByRole('button', { name: /^Dossier à trier/ }))
+    await userEvent.click(screen.getByRole('button', { name: /^Folder to sort/ }))
 
     expect(await screen.findByRole('button', { name: 'Exit' })).toBeInTheDocument()
   })
@@ -393,7 +395,7 @@ describe('bouton Exit', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Exit' }))
 
-    expect(await screen.findByText(/refuse de fermer un onglet/)).toBeInTheDocument()
+    expect(await screen.findByText(/refuses to close a tab/)).toBeInTheDocument()
   })
 
   it('ne dit rien quand la fenêtre s’est bien fermée', async () => {
@@ -407,7 +409,7 @@ describe('bouton Exit', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Exit' }))
       await new Promise((resolve) => setTimeout(resolve, 300))
 
-      expect(screen.queryByText(/refuse de fermer un onglet/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/refuses to close a tab/)).not.toBeInTheDocument()
     } finally {
       Object.defineProperty(window, 'closed', descripteur ?? { value: false, configurable: true })
     }
