@@ -19,12 +19,12 @@ import type { AccountInfo, Configuration, IPublicClientApplication } from '@azur
 export const SCOPES = ['User.Read', 'Files.ReadWrite', 'Files.ReadWrite.All']
 
 export const MESSAGE_CLIENT_ID_MANQUANT =
-  "La variable VITE_MSAL_CLIENT_ID n'est pas renseignée. " +
-  'Créez une app registration Entra (comptes Microsoft personnels uniquement, ' +
-  'plateforme « Single-page application », URI de redirection http://localhost:5173), ' +
-  'puis copiez son Client ID dans un fichier .env.local à la racine du projet sous la ' +
-  'forme VITE_MSAL_CLIENT_ID=... et relancez `npm run dev`. ' +
-  'La marche à suivre détaillée est dans le README.'
+  'The VITE_MSAL_CLIENT_ID variable is not set. ' +
+  'Create an Entra app registration (personal Microsoft accounts only, ' +
+  '“Single-page application” platform, redirect URI http://localhost:5173), ' +
+  'then copy its Client ID into a .env.local file at the root of the project as ' +
+  'VITE_MSAL_CLIENT_ID=... and restart `npm run dev`. ' +
+  'The detailed procedure is in the README.'
 
 /**
  * Adresse à laquelle Microsoft doit nous renvoyer après la connexion.

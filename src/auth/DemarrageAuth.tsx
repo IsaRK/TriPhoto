@@ -38,20 +38,20 @@ export default function DemarrageAuth({ children }: { children: ReactNode }) {
   }, [])
 
   if (etat.statut === 'chargement') {
-    return <EcranMessage titre="TriPhoto" message="Démarrage…" />
+    return <EcranMessage titre="TriPhoto" message="Starting…" />
   }
 
   if (etat.statut === 'erreur') {
     // Le client ID manquant demande une action de configuration ; tout le reste
     // (réseau, retour de redirection invalide) est souvent passager.
     if (etat.message === MESSAGE_CLIENT_ID_MANQUANT) {
-      return <EcranMessage titre="Configuration incomplète" message={etat.message} />
+      return <EcranMessage titre="Incomplete configuration" message={etat.message} />
     }
 
     return (
-      <EcranMessage titre="Le démarrage a échoué" message={etat.message}>
+      <EcranMessage titre="Startup failed" message={etat.message}>
         <button type="button" className="action" onClick={() => window.location.reload()}>
-          Réessayer
+          Try again
         </button>
       </EcranMessage>
     )
@@ -61,5 +61,5 @@ export default function DemarrageAuth({ children }: { children: ReactNode }) {
 }
 
 function decrireErreur(erreur: unknown): string {
-  return erreur instanceof Error ? erreur.message : "L'initialisation de la connexion a échoué."
+  return erreur instanceof Error ? erreur.message : 'Sign-in could not be initialised.'
 }

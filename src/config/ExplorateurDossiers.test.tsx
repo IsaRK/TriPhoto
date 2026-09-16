@@ -115,7 +115,7 @@ describe('explorateur de dossiers', () => {
     render(<ExplorateurDossiers onChoisir={vi.fn()} />)
 
     await screen.findByText('Photos')
-    expect(screen.getByRole('button', { name: 'Choisir ce dossier' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Choose this folder' })).toBeDisabled()
   })
 
   it('renvoie le dossier courant avec son chemin lisible', async () => {
@@ -128,7 +128,7 @@ describe('explorateur de dossiers', () => {
     render(<ExplorateurDossiers onChoisir={onChoisir} />)
     await userEvent.click(await screen.findByText('Photos'))
     await userEvent.click(await screen.findByText('2024'))
-    await userEvent.click(await screen.findByRole('button', { name: 'Choisir ce dossier' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose this folder' }))
 
     expect(onChoisir).toHaveBeenCalledWith({
       id: '2',
@@ -149,10 +149,12 @@ describe('explorateur de dossiers', () => {
     render(<ExplorateurDossiers onChoisir={onChoisir} />)
     await userEvent.click(await screen.findByText('Album famille'))
     await screen.findByText('Juillet')
-    await userEvent.click(screen.getByRole('button', { name: 'Choisir ce dossier' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Choose this folder' }))
 
     const urls = fetchSimule.mock.calls.map(([url]) => url as string)
-    expect(urls.some((url) => url.includes('/drives/drive-de-paul/items/dossier-distant/children'))).toBe(true)
+    expect(
+      urls.some((url) => url.includes('/drives/drive-de-paul/items/dossier-distant/children')),
+    ).toBe(true)
     expect(onChoisir).toHaveBeenCalledWith({
       id: 'dossier-distant',
       driveId: 'drive-de-paul',
@@ -173,8 +175,8 @@ describe('explorateur de dossiers', () => {
     render(<ExplorateurDossiers onChoisir={onChoisir} />)
     await userEvent.click(await screen.findByText('Album famille'))
     await userEvent.click(await screen.findByText('Juillet'))
-    await screen.findByText('Ce dossier ne contient aucun sous-dossier.')
-    await userEvent.click(screen.getByRole('button', { name: 'Choisir ce dossier' }))
+    await screen.findByText('This folder has no subfolder.')
+    await userEvent.click(screen.getByRole('button', { name: 'Choose this folder' }))
 
     expect(onChoisir).toHaveBeenCalledWith({
       id: '9',
@@ -197,10 +199,8 @@ describe('explorateur de dossiers', () => {
 
     render(<ExplorateurDossiers onChoisir={vi.fn()} />)
 
-    expect(await screen.findByRole('button', { name: /Album famille/ })).toHaveTextContent(
-      'partagé',
-    )
-    expect(screen.getByRole('button', { name: /Photos/ })).not.toHaveTextContent('partagé')
+    expect(await screen.findByRole('button', { name: /Album famille/ })).toHaveTextContent('shared')
+    expect(screen.getByRole('button', { name: /Photos/ })).not.toHaveTextContent('shared')
   })
 
   it('signale un dossier sans sous-dossier', async () => {
@@ -209,7 +209,7 @@ describe('explorateur de dossiers', () => {
     render(<ExplorateurDossiers onChoisir={vi.fn()} />)
     await userEvent.click(await screen.findByText('Photos'))
 
-    expect(await screen.findByText('Ce dossier ne contient aucun sous-dossier.')).toBeInTheDocument()
+    expect(await screen.findByText('This folder has no subfolder.')).toBeInTheDocument()
   })
 
   it('affiche une erreur lisible et permet de réessayer', async () => {
@@ -227,7 +227,7 @@ describe('explorateur de dossiers', () => {
     vi.stubGlobal('fetch', fetchSimule)
 
     render(<ExplorateurDossiers onChoisir={vi.fn()} />)
-    await userEvent.click(await screen.findByRole('button', { name: 'Réessayer' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Try again' }))
 
     expect(await screen.findByText('Photos')).toBeInTheDocument()
   })
@@ -239,10 +239,12 @@ describe('explorateur de dossiers', () => {
     vi.stubGlobal('fetch', vi.fn())
 
     render(<ExplorateurDossiers onChoisir={vi.fn()} />)
-    await userEvent.click(await screen.findByRole('button', { name: 'Se reconnecter' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in again' }))
 
     expect(
-      screen.getByText("Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation."),
+      screen.getByText(
+        'Your Microsoft session has expired, or TriPhoto needs a new authorisation.',
+      ),
     ).toBeInTheDocument()
     expect(instanceSimulee.loginRedirect).toHaveBeenCalledTimes(1)
   })

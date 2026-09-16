@@ -176,7 +176,7 @@ describe('titres courts des directions', () => {
   })
 
   it('propose un titre lisible quand le nom ne donne rien', () => {
-    expect(titreParDefaut('   ')).toBe('Dossier')
+    expect(titreParDefaut('   ')).toBe('Folder')
   })
 
   it('coupe la saisie à la longueur maximale', () => {

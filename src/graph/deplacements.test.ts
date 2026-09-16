@@ -58,7 +58,7 @@ describe('déplacement d’un média', () => {
         driveId: 'drive-partage',
         id: 'corbeille',
       }),
-    ).rejects.toThrowError(/autre OneDrive/)
+    ).rejects.toThrowError(/another OneDrive/)
     expect(fetchSimule).not.toHaveBeenCalled()
   })
 

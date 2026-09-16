@@ -11,15 +11,15 @@ export type DirectionSwipe = 'gauche' | 'droite' | 'haut' | 'bas'
 
 export type InfoDirection = {
   direction: DirectionSwipe
-  /** Libellé affiché à l'utilisateur. */
+  /** Libellé affiché à l'utilisateur. Les écrans sont en anglais. */
   libelle: string
   /** Couleur de la direction, sous forme de variable CSS du thème. */
   couleur: string
 }
 
 export const DIRECTIONS: readonly InfoDirection[] = [
-  { direction: 'gauche', libelle: 'Gauche', couleur: 'var(--bleu)' },
-  { direction: 'droite', libelle: 'Droite', couleur: 'var(--orange)' },
-  { direction: 'haut', libelle: 'Haut', couleur: 'var(--vert-eau)' },
-  { direction: 'bas', libelle: 'Bas', couleur: 'var(--rose)' },
+  { direction: 'gauche', libelle: 'Left', couleur: 'var(--bleu)' },
+  { direction: 'droite', libelle: 'Right', couleur: 'var(--orange)' },
+  { direction: 'haut', libelle: 'Up', couleur: 'var(--vert-eau)' },
+  { direction: 'bas', libelle: 'Down', couleur: 'var(--rose)' },
 ]

@@ -84,7 +84,8 @@ export async function listerMedias(
   const drive = encodeURIComponent(driveId)
   const id = encodeURIComponent(idDossier)
   const medias: MediaOneDrive[] = []
-  let url: string | undefined = `https://graph.microsoft.com/v1.0/drives/${drive}/items/${id}/children${PARAMETRES}`
+  let url: string | undefined =
+    `https://graph.microsoft.com/v1.0/drives/${drive}/items/${id}/children${PARAMETRES}`
 
   // Graph pagine les résultats : tant qu'il renvoie une URL de page suivante, on
   // continue, sinon un dossier de plus de 200 éléments serait tronqué.
@@ -92,7 +93,7 @@ export async function listerMedias(
     const reponse = await fetch(url, { headers: enTetes(jetonAcces) })
 
     if (!reponse.ok) {
-      throw new Error(`Microsoft Graph a refusé la lecture des médias (code ${reponse.status}).`)
+      throw new Error(`Microsoft Graph refused to read the media (code ${reponse.status}).`)
     }
 
     const page = (await reponse.json()) as ReponseChildren

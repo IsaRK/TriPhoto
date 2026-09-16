@@ -15,8 +15,8 @@ export type DestinationDeplacement = {
 }
 
 export const MESSAGE_AUTRE_DRIVE =
-  'Ce dossier appartient à un autre OneDrive. Microsoft Graph ne sait pas y déplacer ' +
-  'un fichier en une seule opération.'
+  'This folder belongs to another OneDrive. Microsoft Graph cannot move a file ' +
+  'there in a single operation.'
 
 /**
  * Déplace l'élément vers le dossier indiqué. L'identifiant du fichier ne change
@@ -48,6 +48,6 @@ export async function deplacerElement(
   })
 
   if (!reponse.ok) {
-    throw new Error(`Microsoft Graph a refusé le déplacement (code ${reponse.status}).`)
+    throw new Error(`Microsoft Graph refused the move (code ${reponse.status}).`)
   }
 }

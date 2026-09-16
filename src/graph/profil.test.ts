@@ -30,7 +30,9 @@ describe('appel Graph /me', () => {
   it('retourne le nom et l’adresse du compte', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(reponse({ displayName: 'Alice Martin', mail: 'alice@outlook.com' })),
+      vi
+        .fn()
+        .mockResolvedValue(reponse({ displayName: 'Alice Martin', mail: 'alice@outlook.com' })),
     )
 
     const profil = await recupererProfil('jeton-de-test')
@@ -59,7 +61,9 @@ describe('appel Graph /me', () => {
   it('se rabat sur givenName quand displayName est absent', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(reponse({ givenName: 'Alice', userPrincipalName: 'alice@live.fr' })),
+      vi
+        .fn()
+        .mockResolvedValue(reponse({ givenName: 'Alice', userPrincipalName: 'alice@live.fr' })),
     )
 
     const profil = await recupererProfil('jeton-de-test')

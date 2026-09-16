@@ -49,7 +49,7 @@ describe('démarrage de l’authentification', () => {
 
     const message = await screen.findByText(/VITE_MSAL_CLIENT_ID/)
     expect(message).toHaveTextContent('.env.local')
-    expect(screen.getByRole('heading')).toHaveTextContent('Configuration incomplète')
+    expect(screen.getByRole('heading')).toHaveTextContent('Incomplete configuration')
     expect(screen.queryByText('Application')).not.toBeInTheDocument()
   })
 
@@ -80,7 +80,7 @@ describe('démarrage de l’authentification', () => {
       </DemarrageAuth>,
     )
 
-    expect(await screen.findByText('Démarrage…')).toBeInTheDocument()
+    expect(await screen.findByText('Starting…')).toBeInTheDocument()
     expect(screen.queryByText('Application')).not.toBeInTheDocument()
     terminerRedirection()
 
@@ -118,8 +118,8 @@ describe('démarrage de l’authentification', () => {
     )
 
     expect(await screen.findByText('redirection invalide')).toBeInTheDocument()
-    expect(screen.getByRole('heading')).toHaveTextContent('Le démarrage a échoué')
-    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument()
+    expect(screen.getByRole('heading')).toHaveTextContent('Startup failed')
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     expect(screen.queryByText('Application')).not.toBeInTheDocument()
   })
 })

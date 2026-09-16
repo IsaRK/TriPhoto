@@ -461,7 +461,7 @@ describe('poubelle et annulation', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
-    expect(await screen.findByText(/autre OneDrive/)).toBeInTheDocument()
+    expect(await screen.findByText(/another OneDrive/)).toBeInTheDocument()
   })
 })
 

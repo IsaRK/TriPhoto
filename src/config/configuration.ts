@@ -157,7 +157,7 @@ export function normaliserTitre(
 /** Titre proposé au moment du choix : le nom du dossier, raccourci si besoin. */
 export function titreParDefaut(nom: string): string {
   const titre = couperTitre(nom.trim()).trim()
-  return titre === '' ? 'Dossier' : titre
+  return titre === '' ? 'Folder' : titre
 }
 
 /**

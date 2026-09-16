@@ -70,7 +70,7 @@ export default function CompteMicrosoft() {
   // garde, le bouton « Se connecter » apparaîtrait une fraction de seconde alors
   // que l'utilisateur est déjà connecté.
   if (inProgress === InteractionStatus.Startup) {
-    return <p className="note">Connexion en cours…</p>
+    return <p className="note">Signing in…</p>
   }
 
   if (etat.statut === 'deconnecte') {
@@ -82,17 +82,17 @@ export default function CompteMicrosoft() {
   }
 
   if (etat.statut === 'chargement') {
-    return <p className="note">Connexion en cours…</p>
+    return <p className="note">Signing in…</p>
   }
 
   if (etat.statut === 'sessionExpiree') {
     return (
       <div className="pile">
         <p className="note">
-          Votre session Microsoft a expiré, ou TriPhoto a besoin d'une nouvelle autorisation.
+          Your Microsoft session has expired, or TriPhoto needs a new authorisation.
         </p>
         <button type="button" className="action" onClick={connecter}>
-          Se reconnecter
+          Sign in again
         </button>
       </div>
     )
@@ -103,10 +103,10 @@ export default function CompteMicrosoft() {
       <div className="pile">
         <p className="note">{etat.message}</p>
         <button type="button" className="action" onClick={() => setTentative(tentative + 1)}>
-          Réessayer
+          Try again
         </button>
         <button type="button" className="action action--discrete" onClick={deconnecter}>
-          Se déconnecter
+          Sign out
         </button>
       </div>
     )
@@ -120,17 +120,17 @@ export default function CompteMicrosoft() {
   return (
     <div className="pile">
       <p className="compte">
-        Connecté en tant que <strong>{etat.profil.nom}</strong>
+        Signed in as <strong>{etat.profil.nom}</strong>
       </p>
       {adresse === null ? null : <p className="compte__adresse">{adresse}</p>}
       <button type="button" className="action action--discrete" onClick={deconnecter}>
-        Se déconnecter
+        Sign out
       </button>
     </div>
   )
 }
 
 function decrireErreur(erreur: unknown): string {
-  const detail = erreur instanceof Error ? erreur.message : 'raison inconnue'
-  return `Impossible de récupérer votre profil Microsoft : ${detail}`
+  const detail = erreur instanceof Error ? erreur.message : 'unknown reason'
+  return `Unable to fetch your Microsoft profile: ${detail}`
 }

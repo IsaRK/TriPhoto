@@ -36,24 +36,22 @@ type LigneEmplacement = {
  * vérité que l'écran de tri.
  */
 const LIGNES: readonly LigneEmplacement[] = [
-  { emplacement: 'source', libelle: 'Dossier à trier', couleur: null },
+  { emplacement: 'source', libelle: 'Folder to sort', couleur: null },
   ...DIRECTIONS.map((info) => ({
     emplacement: info.direction,
     libelle: info.libelle,
     couleur: info.couleur,
   })),
-  { emplacement: 'poubelle', libelle: 'Poubelle', couleur: null },
+  { emplacement: 'poubelle', libelle: 'Trash', couleur: null },
 ]
 
 const MESSAGE_STOCKAGE_REFUSE =
-  'Votre navigateur refuse d’enregistrer la configuration : elle sera perdue au ' +
-  'prochain rechargement. C’est le cas en navigation privée, ou si le stockage du ' +
-  'site est bloqué.'
+  'Your browser refuses to save the configuration: it will be lost on the next ' +
+  'reload. This happens in private browsing, or when site storage is blocked.'
 
 const MESSAGE_FERMETURE_REFUSEE =
-  'Votre navigateur refuse de fermer un onglet qu’il n’a pas ouvert lui-même. ' +
-  'Fermez-le à la main, ou installez TriPhoto sur l’écran d’accueil : la version ' +
-  'installée se referme normalement.'
+  'Your browser refuses to close a tab it did not open itself. Close it by hand, ' +
+  'or install TriPhoto on your home screen: the installed version closes normally.'
 
 export default function EcranAccueil() {
   const { accounts } = useMsal()
@@ -96,7 +94,7 @@ export default function EcranAccueil() {
     const occupant = emplacementDejaUtilise(configuration, emplacementEnCours, choisi)
     if (occupant !== null) {
       setAvertissement(
-        `« ${choisi.nom} » est déjà utilisé pour « ${libelleDe(occupant)} ». Choisissez un autre dossier.`,
+        `“${choisi.nom}” is already used for “${libelleDe(occupant)}”. Choose another folder.`,
       )
       return
     }
@@ -123,7 +121,7 @@ export default function EcranAccueil() {
         <BoutonQuitter onQuitter={quitter} />
         <header>
           <h1 className="titre">{libelleDe(emplacementEnCours)}</h1>
-          <p className="accroche">Ouvrez un dossier, puis validez-le.</p>
+          <p className="accroche">Open a folder, then confirm it.</p>
         </header>
 
         {avertissement !== null ? (
@@ -139,7 +137,7 @@ export default function EcranAccueil() {
           className="action action--discrete"
           onClick={() => setEmplacementEnCours(null)}
         >
-          Annuler
+          Cancel
         </button>
       </main>
     )
@@ -147,7 +145,10 @@ export default function EcranAccueil() {
 
   return (
     <main className={estConnecte ? 'ecran' : 'ecran ecran--accueil'}>
-      <BoutonQuitter onQuitter={quitter} />
+      {/* Avant connexion, l'écran ne montre que le logo et le bouton de
+          connexion : une croix de fermeture y serait la seule autre chose à
+          cliquer, sans rien à quitter. */}
+      {estConnecte ? <BoutonQuitter onQuitter={quitter} /> : null}
       <header className={estConnecte ? undefined : 'entete--grand'}>
         <h1 className="titre-logo">
           <Logo />
@@ -187,7 +188,7 @@ export default function EcranAccueil() {
               disabled={!peutCommencerLeTri(configuration)}
               onClick={() => navigate('/tri')}
             >
-              Commencer le tri
+              Start sorting
             </button>
             {manque === null ? null : <p className="note">{manque}</p>}
           </>
@@ -241,7 +242,7 @@ function LigneDossier({
           <span className="emplacement__textes">
             <span className="emplacement__libelle">{ligne.libelle}</span>
             <span className="emplacement__dossier">
-              {dossier === null ? 'Aucun dossier' : dossier.chemin}
+              {dossier === null ? 'No folder' : dossier.chemin}
             </span>
           </span>
         </button>
@@ -250,7 +251,7 @@ function LigneDossier({
             type="button"
             className="emplacement__retirer"
             onClick={onRetirer}
-            aria-label={`Retirer le dossier de « ${ligne.libelle} »`}
+            aria-label={`Remove the folder for “${ligne.libelle}”`}
           >
             ✕
           </button>
@@ -259,12 +260,12 @@ function LigneDossier({
 
       {dossier !== null && ligne.couleur !== null ? (
         <label className="emplacement__titre">
-          <span className="emplacement__titre-libelle">Titre court</span>
+          <span className="emplacement__titre-libelle">Short title</span>
           <input
             type="text"
             value={dossier.titre}
             maxLength={TITRE_LONGUEUR_MAX}
-            aria-label={`Titre court de « ${ligne.libelle} »`}
+            aria-label={`Short title for “${ligne.libelle}”`}
             onChange={(evenement) => onRenommer(evenement.target.value)}
             onBlur={onFinirRenommage}
           />
@@ -285,13 +286,13 @@ function libelleDe(emplacement: Emplacement): string {
  */
 function decrireCeQuiManque(configuration: Configuration): string | null {
   if (configuration.source === null) {
-    return 'Il manque le dossier à trier.'
+    return 'The folder to sort is missing.'
   }
   if (compterDestinations(configuration) === 0) {
-    return 'Choisissez au moins une destination.'
+    return 'Choose at least one destination.'
   }
   if (configuration.poubelle === null) {
-    return 'Il manque le dossier Poubelle.'
+    return 'The Trash folder is missing.'
   }
   return null
 }
