@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Variante « maskable » de l'icône : Android rogne les icônes d'accueil selon la
+  forme du lanceur (cercle, goutte, carré arrondi). La marque est donc réduite à
+  70 % et centrée, pour rester entière dans la zone sûre, et le fond va bord à
+  bord pour qu'aucun angle ne se retrouve transparent.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <rect width="48" height="48" fill="#f7f5f2" />
+  <g transform="translate(7.2, 8.6) scale(0.7)">
+    <rect
+      x="14"
+      y="12"
+      width="20"
+      height="20"
+      rx="4"
+      fill="none"
+      stroke="#405885"
+      stroke-width="2"
+    />
+    <circle cx="24" cy="22" r="4" fill="#405885" />
+    <path d="M 2 22 L 10 15 L 10 29 Z" fill="#405885" />
+    <path d="M 46 22 L 38 15 L 38 29 Z" fill="#ffa530" />
+    <path d="M 24 0 L 17 8 L 31 8 Z" fill="#50aca2" />
+    <path d="M 24 44 L 17 36 L 31 36 Z" fill="#e0748b" />
+  </g>
+</svg>

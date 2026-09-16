@@ -163,6 +163,52 @@ avec un statut 404 sans conséquence — et l'application démarre normalement.
 Le déploiement n'a volontairement **pas** lieu sur les pull requests : il n'existe qu'un
 seul site Pages par dépôt, donc publier une branche écraserait la version en service.
 
+## Installer TriPhoto sur le téléphone
+
+Une fois l'application en ligne, elle s'installe comme une application ordinaire, sans
+passer par un magasin d'applications et sans rien signer.
+
+- **Android (Chrome)** : ouvrir l'adresse, puis le menu **⋮ → Installer l'application**.
+  Chrome propose souvent l'installation de lui-même, en bas de l'écran.
+- **iPhone (Safari)** : ouvrir l'adresse, appuyer sur **Partager**, puis **Sur l'écran
+  d'accueil**. L'installation depuis Chrome ou Firefox sur iPhone ne fonctionne pas :
+  iOS réserve cette possibilité à Safari.
+
+L'icône obtenue est la marque du logo, et l'application s'ouvre **sans la barre d'adresse**
+du navigateur. Ce n'est pas qu'une question d'allure : la barre d'adresse mange une partie
+de l'écran, et surtout le geste de balayage horizontal y déclenche le retour arrière du
+navigateur, ce qui entrerait en conflit avec les swipes du tri.
+
+L'application se lance ensuite même sans réseau, mais ne montrera aucune photo : les
+médias vivent sur OneDrive. Seule l'enveloppe est mise en cache, jamais les données —
+voir la section suivante.
+
+### Ce que le service worker met en cache, et ce qu'il ne met pas
+
+Un service worker est un petit programme que le navigateur garde à côté du site pour lui
+servir des fichiers sans réseau. Celui de TriPhoto est produit par `vite-plugin-pwa`, et
+sa configuration tient en deux règles, toutes deux dans `src/pwa/configurationPwa.ts` :
+
+- **Aucune réponse de Microsoft Graph n'est mise en cache.** Le service worker ne connaît
+  que les fichiers de l'application. C'est volontaire : une liste de médias gardée en
+  cache proposerait de trier des photos déjà déplacées, et les réponses Graph contiennent
+  des données privées qui n'ont rien à faire dans le stockage du navigateur.
+- **Une mise à jour ne s'installe jamais par-dessus un tri en cours.** Le mode
+  `autoUpdate` du plugin a été écarté parce qu'il force `skipWaiting` : une version
+  publiée pendant que l'application est ouverte remplacerait les fichiers sous les pieds
+  de la page. Ici la nouvelle version attend la fermeture de l'application. Un tri en
+  cours — et donc la pile d'annulation — survit à un déploiement. En contrepartie, une
+  mise à jour peut mettre un lancement ou deux à apparaître.
+
+### Régénérer les icônes
+
+Les icônes sont dessinées dans `public/icone.svg` (l'onglet et l'écran d'accueil) et
+`public/icone-maskable.svg` (la variante rognée par Android). Les `.png` publiés en sont
+le rendu : ils existent parce qu'iOS et Android exigent des PNG, mais **le SVG reste la
+source**. Après modification d'un SVG, refaire les rendus en 512 × 512 et 192 × 192 avec
+n'importe quel outil d'export, en gardant les noms de fichiers existants. Un test vérifie
+que les couleurs des SVG correspondent toujours à la table des directions.
+
 ## État d'avancement
 
 | Lot | Périmètre | Statut |
@@ -175,7 +221,7 @@ seul site Pages par dépôt, donc publier une branche écraserait la version en 
 | Lot 5 | Écran de tri en lecture seule : affichage des médias un par un | ✅ Terminé |
 | Lot 6 | Gestes de swipe au doigt, raccourcis clavier, overlay de destination | ✅ Terminé |
 | Lot 7 | Mise en ligne : GitHub Pages, workflow GitHub Actions | ✅ Terminé |
-| Lots suivants | PWA (manifest, service worker), README complet | ⏳ À venir |
+| Lot 8 | PWA : manifeste, icônes, service worker, installation sur le téléphone | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -393,6 +439,30 @@ ligne » plus haut.
   croire qu'il protège quelque chose.
 - Pas de déploiement sur les pull requests : il n'existe qu'un seul site Pages par dépôt,
   publier une branche écraserait la version en service.
+
+### Contenu du Lot 8
+
+L'application devient installable, ce qui est décrit du point de vue de l'usage dans
+« Installer TriPhoto sur le téléphone » plus haut.
+
+- `src/pwa/configurationPwa.ts` : le manifeste et les options du service worker. Ils sont
+  dans un fichier du code, et non enfouis dans `vite.config.ts`, parce qu'une erreur y
+  passerait inaperçue — rien ne casse à la construction, et le défaut ne se voit qu'en
+  installant l'application sur un téléphone. Des tests relisent donc ces valeurs.
+- `start_url` et `scope` sont **relatifs** (`.`) et non absolus. C'est le même piège que
+  pour la redirection Microsoft : un `/` aurait fait démarrer l'application installée sur
+  `https://isark.github.io`, hors de TriPhoto.
+- `src/pwa/serviceWorker.ts` : l'enregistrement est écrit à la main, une dizaine de lignes
+  lisibles, plutôt que laissé à l'injection automatique du plugin. Il ne fait rien en
+  développement, où `sw.js` n'existe pas, et un échec n'empêche jamais l'application de
+  démarrer — on perd seulement le fonctionnement hors ligne.
+- Les icônes sont dérivées du logo, sans le mot « TriPhoto » qui serait illisible en
+  48 pixels. Une variante « maskable » garde la marque dans la zone sûre, parce qu'Android
+  rogne les icônes selon la forme du lanceur.
+- `index.html` déclare en plus `apple-touch-icon` : iOS ignore les icônes du manifeste et
+  mettrait sinon une capture de la page sur l'écran d'accueil.
+- Ni Graph en cache, ni mise à jour forcée : les deux décisions sont expliquées dans
+  « Ce que le service worker met en cache », et chacune est tenue par un test.
 
 ### Titres courts et formes directionnelles
 
