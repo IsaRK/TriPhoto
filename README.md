@@ -3,6 +3,10 @@
 Trier rapidement les photos et vidéos d'un dossier OneDrive, à la manière de Tinder :
 chaque média est envoyé vers l'un des dossiers de destination d'un simple geste.
 
+**Application en ligne : <https://isark.github.io/TriPhoto/>** — attention aux majuscules
+de `TriPhoto`, GitHub Pages y est sensible (voir « [L'adresse exacte, et le piège de la
+casse](#ladresse-exacte-et-le-piège-de-la-casse) »).
+
 > Le README complet (choix techniques, création de l'app registration Entra, installation
 > de la PWA sur téléphone, structure du projet) sera rédigé au Lot 10. Ce document se
 > limite pour l'instant à l'avancement et au démarrage en développement.
@@ -164,6 +168,36 @@ Le déploiement n'a volontairement **pas** lieu sur les pull requests : il n'exi
 seul site Pages par dépôt, donc publier une branche écraserait la version en service.
 
 ## Installer TriPhoto sur le téléphone
+
+### L'adresse exacte, et le piège de la casse
+
+<img src="docs/qr-triphoto.svg" alt="QR code vers https://isark.github.io/TriPhoto/" width="200" align="right" />
+
+L'adresse du site est **`https://isark.github.io/TriPhoto/`**, avec un **T** et un **P**
+majuscules.
+
+GitHub Pages distingue les majuscules des minuscules dans le chemin. `triphoto`,
+`Triphoto` ou l'adresse sans le nom du dépôt renvoient tous la vraie page **404** de
+GitHub, alors que le site fonctionne parfaitement :
+
+| Adresse ouverte | Résultat |
+| --- | --- |
+| `https://isark.github.io/TriPhoto/` | l'application |
+| `https://isark.github.io/triphoto/` | 404 GitHub |
+| `https://isark.github.io/Triphoto/` | 404 GitHub |
+| `https://isark.github.io/` | 404 GitHub |
+
+C'est le piège classique sur téléphone, où le clavier écrit spontanément en minuscules.
+**Le plus simple est de ne jamais taper cette adresse** : scanner le QR code ci-contre
+avec l'appareil photo du téléphone, puis installer l'application (section suivante). Elle
+se lance ensuite depuis son icône, et la question de l'adresse ne se pose plus jamais.
+
+Un détail à ne pas confondre avec une panne : recharger la page en étant sur `/tri`
+renvoie techniquement un code 404, mais **affiche bien l'application**. C'est le repli
+`404.html` décrit plus haut. Un message d'erreur 404 réellement visible signifie donc
+toujours une adresse en dehors du dépôt.
+
+### Installer
 
 Une fois l'application en ligne, elle s'installe comme une application ordinaire, sans
 passer par un magasin d'applications et sans rien signer.
