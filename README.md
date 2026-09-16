@@ -256,6 +256,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 6 | Gestes de swipe au doigt, raccourcis clavier, overlay de destination | ✅ Terminé |
 | Lot 7 | Mise en ligne : GitHub Pages, workflow GitHub Actions | ✅ Terminé |
 | Lot 8 | PWA : manifeste, icônes, service worker, installation sur le téléphone | ✅ Terminé |
+| Lot 9 | Écran de tri entièrement en anglais, coins réorganisés, bouton `Exit` | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -359,9 +360,9 @@ l'écran de tri viendra au lot suivant.
 ### Contenu du Lot 5
 
 L'écran de tri. On voit les médias un par un, et les trois boutons qui ne dépendent pas
-d'une direction agissent déjà : `Delete` envoie le média à la poubelle, `Cancel` le
-ramène, `Skip` passe au suivant. Les **gestes de swipe** vers les quatre destinations sont
-le sujet du Lot 6, décrit plus bas.
+d'une direction agissent déjà : `Delete` envoie le média à la poubelle,
+`Cancel last action` le ramène, `Skip` passe au suivant. Les **gestes de swipe** vers les
+quatre destinations sont le sujet du Lot 6, décrit plus bas.
 
 - Les médias du dossier à trier sont affichés **un par un**, en **plein écran**, du plus
   ancien au plus récent, avec la progression (`12 / 340`) et la date de prise de vue
@@ -372,26 +373,25 @@ le sujet du Lot 6, décrit plus bas.
   leur titre le permet, prolongées d'une **pointe** du côté vers lequel on envoie la photo.
   La flèche découpée d'une première version imposait une pointe longue et une hauteur fixe
   qui mangeaient l'image.
-- Les **quatre boutons des coins** : `Home` (haut gauche), `Cancel` (haut droite),
-  `Delete` (bas gauche), `Skip` (bas droite). Ils portent leur mot seul, sans
+- Les **quatre boutons des coins** : `Home` (haut gauche), `Skip` (haut droite),
+  `Delete` (bas gauche), `Cancel last action` (bas droite). Ils portent leur mot seul, sans
   pictogramme, et ne répondent qu'au clic : aucun geste de swipe ne leur est associé.
-  Ce sont, avec le bouton `Connect with Microsoft` de l'écran d'accueil, les seuls
-  libellés en anglais de l'application, à la demande expresse de l'utilisatrice :
-  ces mots-là lui sont plus familiers que leur traduction.
-- `Home`, `Delete` et `Skip` sont **toujours actifs**. Seul `Cancel` peut être inactif :
-  il n'a rien à annuler tant qu'aucun média n'a été déplacé. Il est alors
+  `Cancel last action` est le seul écrit sur **deux lignes** — d'un seul tenant, il barrerait
+  le bas de l'écran et viendrait toucher la pastille de la direction du bas.
+- `Home`, `Delete` et `Skip` sont **toujours actifs**. Seul `Cancel last action` peut être
+  inactif : il n'a rien à annuler tant qu'aucun média n'a été déplacé. Il est alors
   estompé, ce qui est ici une information juste et non un défaut d'affichage, puisque les
   trois autres ne le sont jamais.
 - **Supprimer ne supprime pas** : `Delete` déplace le média vers le dossier Poubelle
   configuré, par un `PATCH /drives/{driveId}/items/{itemId}` avec
   `{ "parentReference": { "id": "<idPoubelle>" } }`.
 - **Annuler** refait le même appel en sens inverse, vers le dossier à trier, et **réaffiche la
-  photo récupérée**. `Cancel` défait **uniquement le dernier déplacement** : on ne remonte pas
-  aux précédents, qui sont acquis. Une fois l'annulation faite, le bouton
+  photo récupérée**. `Cancel last action` défait **uniquement le dernier déplacement** : on ne
+  remonte pas aux précédents, qui sont acquis. Une fois l'annulation faite, le bouton
   redevient inactif jusqu'au prochain déplacement.
-- `Cancel` reste proposé sur l'écran « Tri terminé » quand une suppression est encore
-  rattrapable : sans cela, le dernier média envoyé à la poubelle ne serait plus récupérable
-  depuis TriPhoto.
+- `Cancel last action` reste proposé sur l'écran « Sorting complete » quand une suppression
+  est encore rattrapable : sans cela, le dernier média envoyé à la poubelle ne serait plus
+  récupérable depuis TriPhoto.
 - Un déplacement qui échoue **ne perd rien** : la liste et le média récupérable restent en
   place, un message s'affiche et le geste peut être refait.
 - Un dossier situé sur **un autre OneDrive** (dossier partagé) est refusé avec un message
@@ -440,9 +440,9 @@ dossier où elle doit aller, et elle y va.
 - Les **flèches du clavier** envoient la photo dans la direction correspondante, ce qui
   permet de tester le tri sur un ordinateur sans souris. Elles appellent `preventDefault()`
   pour ne pas faire défiler la page en même temps.
-- Un swipe est un déplacement comme un autre : `Cancel` **annule aussi un swipe**, pas
-  seulement un `Delete`. Il défait toujours le dernier déplacement en date, quelle qu'en
-  soit l'origine.
+- Un swipe est un déplacement comme un autre : `Cancel last action` **annule aussi un
+  swipe**, pas seulement un `Delete`. Il défait toujours le dernier déplacement en date,
+  quelle qu'en soit l'origine.
 - La logique du geste est isolée dans `src/tri/geste.ts`, en fonctions **pures**
   (`directionDuGeste`, `rotationCarte`). Elles se testent en une ligne, sans simuler ni
   navigateur ni doigt, et c'est là que se trouvent les règles de seuil et d'axe dominant.
@@ -497,6 +497,34 @@ L'application devient installable, ce qui est décrit du point de vue de l'usage
   mettrait sinon une capture de la page sur l'écran d'accueil.
 - Ni Graph en cache, ni mise à jour forcée : les deux décisions sont expliquées dans
   « Ce que le service worker met en cache », et chacune est tenue par un test.
+
+### Contenu du Lot 9
+
+Retouches d'interface demandées à l'usage, sans nouvel appel Graph.
+
+- **L'écran de tri est entièrement en anglais.** Jusqu'ici seuls les quatre boutons des
+  coins l'étaient, ce qui donnait un écran bilingue : `Skip` voisinait avec « Tri
+  terminé ». Tout ce que cet écran affiche est passé à l'anglais — titres, messages
+  d'erreur, écrans « Nothing to sort », « Sorting complete », « Session expired », jusqu'à
+  la date de prise de vue, formatée en `en-GB` (`14 July 2024`) et non plus en `fr-FR`.
+- **L'écran de configuration reste en français**, à l'exception de `Connect with
+  Microsoft` et du nouveau bouton `Exit` : c'est l'écran que l'on ne voit qu'au réglage,
+  là où le tri est l'écran du quotidien.
+- **Les coins ont été réorganisés** : `Skip` passe en haut à droite et
+  `Cancel last action` en bas à droite. Les deux boutons qui font avancer le tri (`Delete`,
+  `Skip`) se retrouvent ainsi aux extrémités opposées, et l'annulation n'est plus voisine
+  du retour à l'accueil.
+- **`Cancel` devient `Cancel last action`**, sur deux lignes. Le nom d'origine ne disait
+  pas ce qui était annulé ; le nouveau tient en deux lignes centrées plutôt que de barrer
+  le bas de l'écran. La disposition a été vérifiée dans le pire cas — quatre titres courts
+  de dix caractères larges — pour s'assurer qu'aucun bouton n'en touche un autre.
+- **Bouton `Exit`**, une croix blanche sur pastille rouge, en haut à droite de l'écran de
+  configuration. Il ferme l'application. Un navigateur n'autorise `window.close()` que sur
+  les fenêtres qu'il a lui-même ouvertes : depuis un onglet ordinaire, la page reste donc
+  affichée et un message le dit, plutôt que de laisser croire à un bouton cassé. Installée
+  sur l'écran d'accueil, l'application se ferme normalement.
+- Le rouge du bouton `Exit` est la seule couleur ajoutée à la palette. Elle n'est partagée
+  avec aucune direction : c'est la seule action qui ferme tout.
 
 ### Titres courts et formes directionnelles
 

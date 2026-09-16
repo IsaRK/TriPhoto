@@ -49,16 +49,18 @@ export function urlAffichage(media: MediaOneDrive): string | null {
   return media.urlMiniature ?? media.urlTelechargement
 }
 
-/** Date de prise de vue en toutes lettres, ex. « 14 juillet 2024 ». */
+/** Date de prise de vue en toutes lettres, ex. « 14 July 2024 ». */
 export function formaterDatePriseDeVue(priseLe: string | null): string {
   if (priseLe === null) {
-    return 'Date inconnue'
+    return 'Unknown date'
   }
   const instant = new Date(priseLe)
   if (Number.isNaN(instant.getTime())) {
-    return 'Date inconnue'
+    return 'Unknown date'
   }
-  return instant.toLocaleDateString('fr-FR', {
+  // L'écran de tri est en anglais ; « en-GB » donne « 14 July 2024 », dans
+  // l'ordre jour-mois-année auquel l'utilisateur est habitué.
+  return instant.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',

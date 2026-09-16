@@ -120,14 +120,14 @@ describe('accès à l’écran de tri', () => {
   it('refuse de trier sans configuration', async () => {
     afficher()
 
-    expect(await screen.findByText(/Choisissez un dossier à trier/)).toBeInTheDocument()
+    expect(await screen.findByText(/Choose a folder to sort/)).toBeInTheDocument()
   })
 
   it('refuse de trier sans aucune destination', async () => {
     enregistrer({ source: dossier('Pellicule') })
     afficher()
 
-    expect(await screen.findByText(/Choisissez un dossier à trier/)).toBeInTheDocument()
+    expect(await screen.findByText(/Choose a folder to sort/)).toBeInTheDocument()
   })
 
   it('refuse de trier sans compte connecté', async () => {
@@ -135,7 +135,7 @@ describe('accès à l’écran de tri', () => {
     comptesSimules = []
     afficher()
 
-    expect(await screen.findByText('Connectez-vous pour trier vos médias.')).toBeInTheDocument()
+    expect(await screen.findByText('Sign in to sort your media.')).toBeInTheDocument()
   })
 
   it('ne lit aucun média tant qu’aucun dossier n’est choisi', async () => {
@@ -143,7 +143,7 @@ describe('accès à l’écran de tri', () => {
     vi.stubGlobal('fetch', appels)
     afficher()
 
-    await screen.findByText(/Choisissez un dossier à trier/)
+    await screen.findByText(/Choose a folder to sort/)
 
     expect(appels).not.toHaveBeenCalled()
   })
@@ -154,7 +154,7 @@ describe('accès à l’écran de tri', () => {
     vi.stubGlobal('fetch', appels)
     afficher()
 
-    await screen.findByText(/Choisissez un dossier à trier/)
+    await screen.findByText(/Choose a folder to sort/)
 
     expect(appels).not.toHaveBeenCalled()
   })
@@ -197,7 +197,7 @@ describe('affichage des médias', () => {
     await screen.findByAltText('photo.jpg')
 
     expect(progression()).toBe('1 / 2')
-    expect(screen.getByText('14 juillet 2024')).toBeInTheDocument()
+    expect(screen.getByText('14 July 2024')).toBeInTheDocument()
   })
 
   it('avance au média suivant quand on passe', async () => {
@@ -259,7 +259,7 @@ describe('affichage des médias', () => {
     )
     afficher()
 
-    expect(await screen.findByText(/n'a pas fourni de lien/)).toBeInTheDocument()
+    expect(await screen.findByText(/did not provide a link/)).toBeInTheDocument()
   })
 
   it('précharge le média suivant sans l’afficher', async () => {
@@ -326,7 +326,7 @@ describe('affichage des médias', () => {
     expect(screen.getByRole('button', { name: 'Skip' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled()
     // Rien n'a encore été supprimé : il n'y a rien à annuler.
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeDisabled()
   })
 })
 
@@ -358,7 +358,9 @@ describe('poubelle et annulation', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeEnabled(),
+    )
   })
 
   it('ramène le média dans le dossier à trier et revient dessus', async () => {
@@ -373,13 +375,15 @@ describe('poubelle et annulation', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await screen.findByAltText('b.jpg')
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
 
     expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
     const deplacements = deplacementsDemandes(fetchSimule)
     expect(deplacements[1].corps.parentReference.id).toBe('Pellicule')
     // Plus rien à récupérer : la suppression a bien été défaite.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeDisabled(),
+    )
   })
 
   it('n’annule que la dernière suppression, sans remonter à la précédente', async () => {
@@ -400,11 +404,13 @@ describe('poubelle et annulation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await screen.findByAltText('c.jpg')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
 
     // On récupère « b », la dernière supprimée, et on s'arrête là : « a » est acquis.
     expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeDisabled(),
+    )
   })
 
   it('garde le média récupérable quand un déplacement échoue', async () => {
@@ -425,14 +431,16 @@ describe('poubelle et annulation', () => {
     await screen.findByAltText('a.jpg')
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled())
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeEnabled(),
+    )
 
     echoue = true
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
 
-    expect(await screen.findByText(/Le déplacement a échoué/)).toBeInTheDocument()
+    expect(await screen.findByText(/The move failed/)).toBeInTheDocument()
     // L'échec ne doit pas oublier le média : l'annulation reste possible.
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeEnabled()
   })
 
   it('refuse un déplacement vers un autre OneDrive avec un message lisible', async () => {
@@ -678,7 +686,7 @@ describe('swipe et clavier', () => {
 
     glisser(-150, 0)
     await screen.findByAltText('b.jpg')
-    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
 
     expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
     expect(deplacementsDemandes(fetchSimule)[1].corps.parentReference.id).toBe('Pellicule')
@@ -691,7 +699,7 @@ describe('fin et cas limites', () => {
     vi.stubGlobal('fetch', simulerGraph([]))
     afficher()
 
-    expect(await screen.findByText(/ne contient aucune photo ni vidéo/)).toBeInTheDocument()
+    expect(await screen.findByText(/contains no photos or videos/)).toBeInTheDocument()
   })
 
   it('écarte les fichiers qui ne sont ni image ni vidéo', async () => {
@@ -704,7 +712,7 @@ describe('fin et cas limites', () => {
     )
     afficher()
 
-    expect(await screen.findByText(/ne contient aucune photo ni vidéo/)).toBeInTheDocument()
+    expect(await screen.findByText(/contains no photos or videos/)).toBeInTheDocument()
   })
 
   it('annonce la fin du tri après le dernier média', async () => {
@@ -715,8 +723,8 @@ describe('fin et cas limites', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
 
-    expect(await screen.findByText('Tri terminé')).toBeInTheDocument()
-    expect(screen.getByText('1 média passé en revue.')).toBeInTheDocument()
+    expect(await screen.findByText('Sorting complete')).toBeInTheDocument()
+    expect(screen.getByText('1 item reviewed.')).toBeInTheDocument()
   })
 
   it('permet de repartir du premier média après la fin', async () => {
@@ -726,7 +734,7 @@ describe('fin et cas limites', () => {
     await screen.findByAltText('photo.jpg')
     await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Tout revoir' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Review again' }))
 
     expect(await screen.findByAltText('photo.jpg')).toBeInTheDocument()
   })
@@ -754,7 +762,7 @@ describe('erreurs', () => {
     afficher()
     await screen.findByText(/code 500/)
 
-    await userEvent.click(screen.getByRole('button', { name: 'Réessayer' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
     expect(await screen.findByAltText('photo.jpg')).toBeInTheDocument()
   })
@@ -766,7 +774,7 @@ describe('erreurs', () => {
     )
     afficher()
 
-    expect(await screen.findByRole('button', { name: 'Se reconnecter' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Sign in again' })).toBeInTheDocument()
   })
 
   it('affiche une erreur réseau sans proposer de se reconnecter', async () => {
@@ -778,6 +786,6 @@ describe('erreurs', () => {
     afficher()
 
     expect(await screen.findByText(/réseau injoignable/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Se reconnecter' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sign in again' })).not.toBeInTheDocument()
   })
 })

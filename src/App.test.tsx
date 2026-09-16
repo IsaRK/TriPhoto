@@ -41,7 +41,7 @@ describe('routage de l’application', () => {
   it('affiche l’écran de tri sur /tri', () => {
     afficher('/tri')
 
-    expect(titre()).toBe('Tri impossible')
+    expect(titre()).toBe('Cannot sort')
   })
 
   it('redirige une route inconnue vers l’écran de configuration', () => {
@@ -53,7 +53,7 @@ describe('routage de l’application', () => {
   it('navigue du tri vers la configuration', async () => {
     afficher('/tri')
 
-    await userEvent.click(screen.getByRole('link', { name: 'Aller à la configuration' }))
+    await userEvent.click(screen.getByRole('link', { name: 'Go to settings' }))
 
     expect(titre()).toBe('TriPhoto')
   })
