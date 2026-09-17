@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { listerDossiersRacine, listerSousDossiers, oublierIdDeMonDrive } from './dossiers'
+import {
+  lireDossierRacine,
+  listerDossiersRacine,
+  listerSousDossiers,
+  oublierLesIdentifiantsMemorises,
+} from './dossiers'
 
 function reponse(donnees: unknown, options: { ok?: boolean; status?: number } = {}): Response {
   return {
@@ -35,7 +40,7 @@ function monDrive() {
 }
 
 beforeEach(() => {
-  oublierIdDeMonDrive()
+  oublierLesIdentifiantsMemorises()
 })
 
 afterEach(() => {
@@ -43,6 +48,41 @@ afterEach(() => {
 })
 
 describe('lecture des dossiers OneDrive', () => {
+  it('lit l’identifiant du dossier racine, avec celui du drive', async () => {
+    const fetchSimule = simulerAppels(monDrive(), reponse({ id: 'id-racine' }))
+
+    const racine = await lireDossierRacine('jeton-de-test')
+
+    expect(racine).toEqual({ id: 'id-racine', driveId: 'mon-drive' })
+    const [url, options] = fetchSimule.mock.calls[1]
+    expect(url).toBe('https://graph.microsoft.com/v1.0/me/drive/root?$select=id')
+    expect(options.headers.Authorization).toContain('jeton-de-test')
+  })
+
+  it('ne redemande pas l’identifiant de la racine une deuxième fois', async () => {
+    const fetchSimule = simulerAppels(monDrive(), reponse({ id: 'id-racine' }))
+
+    await lireDossierRacine('jeton-de-test')
+    await lireDossierRacine('jeton-de-test')
+
+    const urls = fetchSimule.mock.calls.map(([url]) => url as string)
+    expect(urls.filter((url) => url.includes('/me/drive/root?'))).toHaveLength(1)
+  })
+
+  it('refuse une racine sans identifiant plutôt que d’en inventer un', async () => {
+    simulerAppels(monDrive(), reponse({}))
+
+    await expect(lireDossierRacine('jeton-de-test')).rejects.toThrow(
+      'did not return your root folder identifier',
+    )
+  })
+
+  it('signale le code d’erreur quand Graph refuse de lire la racine', async () => {
+    simulerAppels(monDrive(), reponse({}, { ok: false, status: 403 }))
+
+    await expect(lireDossierRacine('jeton-de-test')).rejects.toThrow('code 403')
+  })
+
   it('interroge la racine du drive avec les champs utiles', async () => {
     const fetchSimule = simulerAppels(monDrive(), reponse({ value: [] }))
 
