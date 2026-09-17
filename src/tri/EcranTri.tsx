@@ -292,13 +292,31 @@ export default function EcranTri() {
     })
   }
 
+  /**
+   * Relit le dossier à trier depuis OneDrive.
+   *
+   * C'est le seul moyen de voir les photos ajoutées au dossier depuis l'entrée
+   * dans l'écran de tri : la liste n'est lue qu'une fois, exprès, pour qu'elle
+   * ne bouge pas sous les doigts pendant qu'on swipe.
+   *
+   * Changer `tentative` suffit : l'effet de chargement le surveille, et c'est
+   * lui qui remet à zéro la position, la pile d'annulation et les échecs
+   * d'affichage. Une liste neuve, c'est une session de tri neuve.
+   */
+  const relireLaListe = () => {
+    setTentative(tentative + 1)
+  }
+
   if (medias.length === 0) {
     return (
       <EcranMessage
         titre="Nothing to sort"
         message={`“${source.nom}” contains no photos or videos.`}
       >
-        <Link className="action" to="/">
+        <button type="button" className="action" onClick={relireLaListe}>
+          Check for new photos
+        </button>
+        <Link className="action action--discrete" to="/">
           Back to settings
         </Link>
       </EcranMessage>
@@ -320,6 +338,15 @@ export default function EcranTri() {
         )}
         <button type="button" className="action" onClick={reprendreDepuisLeDebut}>
           Review again
+        </button>
+        {/*
+          « Review again » repasse sur la liste déjà en mémoire ; « Check for new
+          photos » la redemande à OneDrive. Les deux sont utiles : le premier
+          pour revoir ce qu'on vient de trier, le second pour prendre les photos
+          arrivées entre-temps.
+        */}
+        <button type="button" className="action" onClick={relireLaListe}>
+          Check for new photos
         </button>
         {erreurDeplacement === null ? null : (
           <p className="note" role="alert">
