@@ -330,6 +330,271 @@ describe('affichage des médias', () => {
   })
 })
 
+describe('liens expirés', () => {
+  /**
+   * Comme `simulerGraph`, mais répond aussi aux relectures d'un média seul. Le
+   * mock les distingue sur l'URL, comme le ferait Graph : la liste passe par
+   * `/children`, la relecture vise directement l'élément.
+   */
+  function simulerGraphAvecRelecture(
+    elements: Record<string, unknown>[],
+    relecture: () => Promise<Response>,
+  ) {
+    return vi.fn((url: string, options?: RequestInit) => {
+      if (options?.method === 'PATCH') {
+        return json({})
+      }
+      return url.includes('/children') ? json({ value: elements }) : relecture()
+    })
+  }
+
+  function refus(status: number): Promise<Response> {
+    return Promise.resolve({ ok: false, status, json: async () => ({}) } as Response)
+  }
+
+  function lienFrais(champs: Record<string, unknown> = {}) {
+    return json(
+      elementGraph({
+        id: 'a',
+        thumbnails: [{ large: { url: 'https://exemple/frais.jpg' } }],
+        ...champs,
+      }),
+    )
+  }
+
+  it('redemande un lien frais quand l’image ne se charge pas', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphAvecRelecture([elementGraph({ id: 'a' })], () => lienFrais())
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    const image = await screen.findByAltText('photo.jpg')
+    expect(image).toHaveAttribute('src', 'https://exemple/miniature.jpg')
+
+    // Ce que fait le navigateur quand le lien signé par Graph a expiré.
+    fireEvent.error(image)
+
+    await waitFor(() =>
+      expect(screen.getByAltText('photo.jpg')).toHaveAttribute('src', 'https://exemple/frais.jpg'),
+    )
+    expect(fetchSimule.mock.calls[1][0]).toContain('/items/a?')
+  })
+
+  it('garde la position dans le tri après un lien renouvelé', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphAvecRelecture(
+      [
+        elementGraph({
+          id: 'z',
+          name: 'ancienne.jpg',
+          photo: { takenDateTime: '2024-01-01T00:00:00Z' },
+        }),
+        elementGraph({ id: 'a', photo: { takenDateTime: '2024-08-01T00:00:00Z' } }),
+      ],
+      // Date volontairement plus ancienne que celle du premier média : si le
+      // remplacement re-triait la liste, ce média repasserait en tête.
+      () => lienFrais({ photo: { takenDateTime: '2023-01-01T00:00:00Z' } }),
+    )
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('ancienne.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    const image = await screen.findByAltText('photo.jpg')
+    expect(progression()).toBe('2 / 2')
+
+    fireEvent.error(image)
+
+    await waitFor(() =>
+      expect(screen.getByAltText('photo.jpg')).toHaveAttribute('src', 'https://exemple/frais.jpg'),
+    )
+    expect(progression()).toBe('2 / 2')
+  })
+
+  it('n’insiste pas quand le lien frais ne marche pas non plus', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphAvecRelecture([elementGraph({ id: 'a' })], () => lienFrais())
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    fireEvent.error(await screen.findByAltText('photo.jpg'))
+    await waitFor(() =>
+      expect(screen.getByAltText('photo.jpg')).toHaveAttribute('src', 'https://exemple/frais.jpg'),
+    )
+
+    fireEvent.error(screen.getByAltText('photo.jpg'))
+
+    expect(await screen.findByText(/could not be loaded/)).toBeInTheDocument()
+    // La liste, puis une seule relecture : on ne martèle pas Graph.
+    expect(fetchSimule).toHaveBeenCalledTimes(2)
+  })
+
+  it('signale un média illisible quand Graph refuse de le relire', async () => {
+    configurationComplete()
+    vi.stubGlobal(
+      'fetch',
+      simulerGraphAvecRelecture([elementGraph({ id: 'a' })], () => refus(404)),
+    )
+    afficher()
+
+    fireEvent.error(await screen.findByAltText('photo.jpg'))
+
+    expect(await screen.findByText(/could not be loaded/)).toBeInTheDocument()
+  })
+
+  it('laisse trier un média illisible', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphAvecRelecture([elementGraph({ id: 'a' })], () => refus(404))
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    fireEvent.error(await screen.findByAltText('photo.jpg'))
+    await screen.findByText(/could not be loaded/)
+
+    // Un média qu'on ne peut pas voir reste un média qu'on peut ranger.
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => expect(deplacementsDemandes(fetchSimule)).toHaveLength(1))
+    expect(deplacementsDemandes(fetchSimule)[0].corps.parentReference.id).toBe('Corbeille')
+  })
+
+  it('ne confond pas un échec en double avec l’échec du lien frais', async () => {
+    // La carte et le préchargement butent sur leurs liens expirés au même
+    // instant, puis l'utilisateur passe au suivant avant que Graph n'ait
+    // répondu : le média suivant se remonte avec son ancien lien, qui échoue
+    // une seconde fois. Ce second échec ne dit rien de neuf.
+    configurationComplete()
+    let repondre: (() => void) | null = null
+    const fetchSimule = simulerGraphAvecRelecture(
+      [
+        elementGraph({ id: 'a', photo: { takenDateTime: '2024-01-01T00:00:00Z' } }),
+        elementGraph({
+          id: 'b',
+          name: 'seconde.jpg',
+          photo: { takenDateTime: '2024-08-01T00:00:00Z' },
+        }),
+      ],
+      () =>
+        new Promise<Response>((resoudre) => {
+          repondre = () =>
+            resoudre({
+              ok: true,
+              status: 200,
+              json: async () => elementGraph({ id: 'b', name: 'seconde.jpg' }),
+            } as Response)
+        }),
+    )
+    vi.stubGlobal('fetch', fetchSimule)
+    const { container } = afficher()
+    await screen.findByAltText('photo.jpg')
+
+    fireEvent.error(container.querySelector('.prechargement')!)
+    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    fireEvent.error(await screen.findByAltText('seconde.jpg'))
+    act(() => repondre!())
+
+    // Le lien frais est bien essayé : le média n'a pas été condamné entre-temps.
+    await waitFor(() =>
+      expect(screen.getByAltText('seconde.jpg')).toHaveAttribute(
+        'src',
+        'https://exemple/miniature.jpg',
+      ),
+    )
+    expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument()
+  })
+
+  it('renouvelle le lien d’une vidéo comme celui d’une image', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphAvecRelecture(
+      [elementGraph({ id: 'a', name: 'film.mp4', file: { mimeType: 'video/mp4' } })],
+      () =>
+        json(
+          elementGraph({
+            id: 'a',
+            name: 'film.mp4',
+            file: { mimeType: 'video/mp4' },
+            '@microsoft.graph.downloadUrl': 'https://exemple/film-frais.mp4',
+          }),
+        ),
+    )
+    vi.stubGlobal('fetch', fetchSimule)
+    const { container } = afficher()
+    await waitFor(() => expect(container.querySelector('video')).not.toBeNull())
+
+    fireEvent.error(container.querySelector('video')!)
+
+    await waitFor(() =>
+      expect(container.querySelector('video')).toHaveAttribute(
+        'src',
+        'https://exemple/film-frais.mp4',
+      ),
+    )
+  })
+
+  it('redonne sa chance à un média illisible quand on repart du début', async () => {
+    // Une nouvelle passe arrive potentiellement une heure plus tard : les liens
+    // renouvelés ont pu expirer à leur tour.
+    configurationComplete()
+    const fetchSimule = simulerGraphAvecRelecture([elementGraph({ id: 'a' })], () => refus(404))
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    fireEvent.error(await screen.findByAltText('photo.jpg'))
+    await screen.findByText(/could not be loaded/)
+    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Review again' }))
+
+    const image = await screen.findByAltText('photo.jpg')
+    fireEvent.error(image)
+    // La liste, la relecture de la première passe, puis celle de la seconde.
+    await waitFor(() => expect(fetchSimule).toHaveBeenCalledTimes(3))
+  })
+
+  it('parle de session expirée plutôt que de média illisible', async () => {
+    // La session Microsoft expire elle aussi au bout d'une heure : c'est le
+    // même moment, mais pas le même problème.
+    configurationComplete()
+    vi.stubGlobal(
+      'fetch',
+      simulerGraphAvecRelecture([elementGraph({ id: 'a' })], () => lienFrais()),
+    )
+    afficher()
+    const image = await screen.findByAltText('photo.jpg')
+    instanceSimulee.acquireTokenSilent.mockRejectedValue(
+      new InteractionRequiredAuthError('interaction_required', 'session expirée'),
+    )
+
+    fireEvent.error(image)
+
+    expect(await screen.findByRole('button', { name: 'Sign in again' })).toBeInTheDocument()
+    expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument()
+  })
+
+  it('renouvelle aussi le lien du média préchargé', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphAvecRelecture(
+      [
+        elementGraph({ id: 'a', photo: { takenDateTime: '2024-01-01T00:00:00Z' } }),
+        elementGraph({
+          id: 'b',
+          name: 'seconde.jpg',
+          photo: { takenDateTime: '2024-08-01T00:00:00Z' },
+        }),
+      ],
+      () => lienFrais({ id: 'b', name: 'seconde.jpg' }),
+    )
+    vi.stubGlobal('fetch', fetchSimule)
+    const { container } = afficher()
+    await screen.findByAltText('photo.jpg')
+
+    fireEvent.error(container.querySelector('.prechargement')!)
+
+    await waitFor(() =>
+      expect(container.querySelector('.prechargement')).toHaveAttribute(
+        'src',
+        'https://exemple/frais.jpg',
+      ),
+    )
+    expect(fetchSimule.mock.calls[1][0]).toContain('/items/b?')
+  })
+})
+
 describe('poubelle et annulation', () => {
   it('déplace le média vers la poubelle et passe au suivant', async () => {
     configurationComplete()

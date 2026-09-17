@@ -5,7 +5,7 @@ import { estInteractionRequise, recupererJetonAcces, SCOPES } from '../auth/msal
 import { lireConfiguration, peutCommencerLeTri } from '../config/configuration'
 import { deplacerElement } from '../graph/deplacements'
 import type { MediaOneDrive } from '../graph/medias'
-import { listerMedias } from '../graph/medias'
+import { listerMedias, relireMedia } from '../graph/medias'
 import EcranMessage from '../ui/EcranMessage'
 import {
   destinationsConfigurees,
@@ -49,6 +49,16 @@ export default function EcranTri() {
   const [dernierDeplacement, setDernierDeplacement] = useState<Deplacement | null>(null)
   const [deplacementEnCours, setDeplacementEnCours] = useState(false)
   const [erreurDeplacement, setErreurDeplacement] = useState<string | null>(null)
+  /**
+   * URL d'affichage déjà signalées comme cassées. La carte et le préchargement
+   * peuvent échouer sur le même lien à quelques instants d'intervalle : sans
+   * cette liste, le second échec serait pris pour un échec du lien frais.
+   */
+  const [urlsCassees, setUrlsCassees] = useState<string[]>([])
+  /** Médias dont on a déjà redemandé un lien frais : on ne le fait qu'une fois. */
+  const [idsRafraichis, setIdsRafraichis] = useState<string[]>([])
+  /** Médias qui n'ont pas pu être affichés, même avec un lien frais. */
+  const [idsIllisibles, setIdsIllisibles] = useState<string[]>([])
 
   const source = configuration.source
 
@@ -66,6 +76,9 @@ export default function EcranTri() {
         if (!annule) {
           setEtat({ statut: 'pret', medias })
           setIndex(0)
+          setUrlsCassees([])
+          setIdsRafraichis([])
+          setIdsIllisibles([])
         }
       })
       .catch((erreur: unknown) => {
@@ -148,6 +161,78 @@ export default function EcranTri() {
   const medias = etat.medias
 
   /**
+   * Appelé quand le navigateur n'arrive pas à charger une image ou une vidéo.
+   *
+   * La cause de loin la plus fréquente est l'expiration du lien signé par Graph,
+   * au bout d'environ une heure de tri. On redemande donc un lien frais pour ce
+   * seul média, et l'affichage repart tout seul dès que la liste est mise à
+   * jour : l'utilisateur ne voit qu'un bref clignotement.
+   *
+   * On raisonne sur l'URL et non sur le média : la carte et le préchargement
+   * peuvent buter sur le même lien pendant que la relecture est en route, et ce
+   * second échec ne dit rien de neuf. Seul un échec sur une URL jamais vue
+   * compte, et il n'y a qu'une relecture par média et par passe : le lien frais
+   * qui casse à son tour signifie autre chose qu'une expiration — fichier
+   * supprimé entre-temps, format que le navigateur ne sait pas lire — et
+   * réessayer en boucle ne ferait que marteler Graph.
+   */
+  const signalerEchecChargement = (aRecharger: MediaOneDrive) => {
+    const url = urlAffichage(aRecharger)
+
+    if (url === null || urlsCassees.includes(url)) {
+      return
+    }
+
+    setUrlsCassees((precedentes) => [...precedentes, url])
+
+    if (idsRafraichis.includes(aRecharger.id)) {
+      setIdsIllisibles((precedents) => [...precedents, aRecharger.id])
+      return
+    }
+
+    setIdsRafraichis((precedents) => [...precedents, aRecharger.id])
+
+    recupererJetonAcces(instance, compte)
+      .then((jeton) => relireMedia(jeton, aRecharger.driveId, aRecharger.id))
+      .then((frais) => {
+        // Remplacement à la même place : la position dans le tri et la pile
+        // d'annulation ne bougent pas.
+        setEtat((precedent) =>
+          precedent.statut === 'pret'
+            ? {
+                statut: 'pret',
+                medias: precedent.medias.map((existant) =>
+                  existant.id === frais.id ? frais : existant,
+                ),
+              }
+            : precedent,
+        )
+      })
+      .catch((erreur: unknown) => {
+        // Une session Microsoft expire elle aussi au bout d'une heure : c'est
+        // le même moment, mais pas le même problème. Le dire franchement évite
+        // d'accuser les médias les uns après les autres.
+        if (estInteractionRequise(erreur)) {
+          setEtat({ statut: 'sessionExpiree' })
+          return
+        }
+        setIdsIllisibles((precedents) => [...precedents, aRecharger.id])
+      })
+  }
+
+  /**
+   * Repart du premier média. Les échecs de chargement de la passe précédente
+   * sont oubliés : les liens renouvelés il y a une heure ont pu expirer à leur
+   * tour, et un média jugé illisible mérite une seconde chance.
+   */
+  const reprendreDepuisLeDebut = () => {
+    setIndex(0)
+    setUrlsCassees([])
+    setIdsRafraichis([])
+    setIdsIllisibles([])
+  }
+
+  /**
    * Exécute un déplacement Graph. L'échec n'efface ni la liste ni le média
    * mémorisé pour l'annulation : il affiche un message et laisse tout en place,
    * pour qu'un réseau capricieux ne coûte pas le travail déjà fait.
@@ -213,7 +298,7 @@ export default function EcranTri() {
             Cancel last action
           </button>
         )}
-        <button type="button" className="action" onClick={() => setIndex(0)}>
+        <button type="button" className="action" onClick={reprendreDepuisLeDebut}>
           Review again
         </button>
         {erreurDeplacement === null ? null : (
@@ -276,7 +361,11 @@ export default function EcranTri() {
         actif={!deplacementEnCours}
         onSwipe={envoyerVersDirection}
       >
-        <CarteMedia media={media} />
+        <CarteMedia
+          media={media}
+          illisible={idsIllisibles.includes(media.id)}
+          onEchecChargement={signalerEchecChargement}
+        />
       </CarteSwipable>
 
       <RaccourcisClavier onDirection={envoyerVersDirection} />
@@ -286,7 +375,9 @@ export default function EcranTri() {
         l'écran : sans cela chaque « Skip » afficherait un cadre vide le temps
         du téléchargement.
       */}
-      {suivant ? <PrechargementMedia media={suivant} /> : null}
+      {suivant ? (
+        <PrechargementMedia media={suivant} onEchecChargement={signalerEchecChargement} />
+      ) : null}
 
       <p className="tri__infos">
         <span className="tri__progression">{formaterProgression(index, medias.length)}</span>
@@ -377,7 +468,15 @@ function RaccourcisClavier({ onDirection }: { onDirection: (direction: Direction
   return null
 }
 
-function CarteMedia({ media }: { media: MediaOneDrive }) {
+function CarteMedia({
+  media,
+  illisible,
+  onEchecChargement,
+}: {
+  media: MediaOneDrive
+  illisible: boolean
+  onEchecChargement: (media: MediaOneDrive) => void
+}) {
   const url = urlAffichage(media)
 
   if (url === null) {
@@ -386,30 +485,59 @@ function CarteMedia({ media }: { media: MediaOneDrive }) {
     )
   }
 
-  if (media.type === 'video') {
-    return <video className="tri__media" src={url} controls preload="metadata" />
+  if (illisible) {
+    return (
+      <p className="tri__sans-media">
+        This item could not be loaded, even with a fresh link from OneDrive. You can still sort it.
+      </p>
+    )
   }
 
-  return <img className="tri__media" src={url} alt={media.nom} />
+  const surEchec = () => onEchecChargement(media)
+
+  if (media.type === 'video') {
+    return <video className="tri__media" src={url} controls preload="metadata" onError={surEchec} />
+  }
+
+  return <img className="tri__media" src={url} alt={media.nom} onError={surEchec} />
 }
 
 /**
  * Charge le média suivant sans l'afficher. Une image suffit à remplir le cache
  * du navigateur ; pour une vidéo on se contente des métadonnées, télécharger le
  * fichier entier coûterait cher en données mobiles.
+ *
+ * Son échec est signalé comme celui de la carte : si le lien du suivant a
+ * expiré, autant le renouveler maintenant plutôt qu'au moment de l'afficher.
  */
-function PrechargementMedia({ media }: { media: MediaOneDrive }) {
+function PrechargementMedia({
+  media,
+  onEchecChargement,
+}: {
+  media: MediaOneDrive
+  onEchecChargement: (media: MediaOneDrive) => void
+}) {
   const url = urlAffichage(media)
 
   if (url === null) {
     return null
   }
 
+  const surEchec = () => onEchecChargement(media)
+
   if (media.type === 'video') {
-    return <video className="prechargement" src={url} preload="metadata" aria-hidden="true" />
+    return (
+      <video
+        className="prechargement"
+        src={url}
+        preload="metadata"
+        aria-hidden="true"
+        onError={surEchec}
+      />
+    )
   }
 
-  return <img className="prechargement" src={url} alt="" aria-hidden="true" />
+  return <img className="prechargement" src={url} alt="" aria-hidden="true" onError={surEchec} />
 }
 
 function decrireFin(nombre: number): string {

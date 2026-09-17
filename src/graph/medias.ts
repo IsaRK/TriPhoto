@@ -66,10 +66,11 @@ type ReponseChildren = {
  * `$top` reste modeste : sur une page trop large, OneDrive renonce à produire
  * les miniatures d'une partie des éléments.
  */
-const PARAMETRES =
-  '?$select=id,name,file,photo,video,size,createdDateTime,fileSystemInfo,@microsoft.graph.downloadUrl' +
-  '&$expand=thumbnails($select=c1600x1600,large)' +
-  '&$top=50'
+const CHAMPS =
+  '$select=id,name,file,photo,video,size,createdDateTime,fileSystemInfo,@microsoft.graph.downloadUrl' +
+  '&$expand=thumbnails($select=c1600x1600,large)'
+
+const PARAMETRES = `?${CHAMPS}&$top=50`
 
 /**
  * Tous les médias du dossier, du plus ancien au plus récent : on trie les photos
@@ -108,6 +109,43 @@ export async function listerMedias(
   }
 
   return medias.sort((a, b) => a.instantPriseLe - b.instantPriseLe)
+}
+
+/**
+ * Redemande à Graph un seul média, pour obtenir des liens frais.
+ *
+ * Les URL de téléchargement et de miniature sont signées et expirent au bout
+ * d'environ une heure. Sur une longue session de tri, l'écran finit donc par
+ * afficher des cadres vides alors que tout va bien côté OneDrive. Plutôt que de
+ * recharger la liste entière — ce qui ferait perdre la position et l'annulation
+ * en attente —, on ne redemande que l'élément qui pose problème.
+ *
+ * Lève si Graph refuse, si le média a disparu, ou si ce n'est plus une photo ni
+ * une vidéo : l'appelant se contentera alors de signaler l'élément comme
+ * illisible.
+ */
+export async function relireMedia(
+  jetonAcces: string,
+  driveId: string,
+  idMedia: string,
+): Promise<MediaOneDrive> {
+  const drive = encodeURIComponent(driveId)
+  const id = encodeURIComponent(idMedia)
+  const url = `https://graph.microsoft.com/v1.0/drives/${drive}/items/${id}?${CHAMPS}`
+
+  const reponse = await fetch(url, { headers: enTetes(jetonAcces) })
+
+  if (!reponse.ok) {
+    throw new Error(`Microsoft Graph refused to reload this item (code ${reponse.status}).`)
+  }
+
+  const media = convertir((await reponse.json()) as ElementGraph, driveId)
+
+  if (!media) {
+    throw new Error('Microsoft Graph returned something that is not a photo or a video.')
+  }
+
+  return media
 }
 
 /**
