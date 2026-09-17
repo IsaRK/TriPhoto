@@ -22,7 +22,7 @@ type EtatChargement =
   | { statut: 'sessionExpiree' }
   | { statut: 'erreur'; message: string }
 
-/** Le dernier média déplacé, gardé pour pouvoir le récupérer. */
+/** Un média déplacé, gardé pour pouvoir le récupérer. */
 type Deplacement = {
   media: MediaOneDrive
   /** Position du média dans la liste, pour le réafficher après annulation. */
@@ -46,7 +46,12 @@ export default function EcranTri() {
   const [etat, setEtat] = useState<EtatChargement>({ statut: 'chargement' })
   const [index, setIndex] = useState(0)
   const [tentative, setTentative] = useState(0)
-  const [dernierDeplacement, setDernierDeplacement] = useState<Deplacement | null>(null)
+  /**
+   * Les déplacements faits pendant cette session de tri, du plus ancien au plus
+   * récent. On dépile à chaque annulation, ce qui permet de remonter plusieurs
+   * photos de suite et pas seulement la dernière.
+   */
+  const [deplacements, setDeplacements] = useState<Deplacement[]>([])
   const [deplacementEnCours, setDeplacementEnCours] = useState(false)
   const [erreurDeplacement, setErreurDeplacement] = useState<string | null>(null)
   /**
@@ -76,6 +81,9 @@ export default function EcranTri() {
         if (!annule) {
           setEtat({ statut: 'pret', medias })
           setIndex(0)
+          // Une nouvelle liste, c'est une nouvelle session de tri : les
+          // positions mémorisées dans la pile ne voudraient plus rien dire.
+          setDeplacements([])
           setUrlsCassees([])
           setIdsRafraichis([])
           setIdsIllisibles([])
@@ -258,17 +266,23 @@ export default function EcranTri() {
   }
 
   /**
-   * Annule le dernier « Delete » : le média retourne dans le dossier à trier et
-   * s'affiche de nouveau. On ne remonte pas plus loin — seule la dernière
-   * suppression est rattrapable, les précédentes sont acquises.
+   * Annule le dernier déplacement en date : le média retourne dans le dossier à
+   * trier et s'affiche de nouveau. On dépile ensuite, si bien qu'un second appui
+   * remonte le déplacement d'avant, puis celui d'encore avant.
+   *
+   * Le média n'est retiré de la pile qu'une fois Graph d'accord : un échec
+   * réseau ne doit pas faire perdre la possibilité de réessayer.
    */
   const annulerDernierDeplacement = () => {
-    if (deplacementEnCours || dernierDeplacement === null) {
+    const dernier = deplacements[deplacements.length - 1]
+
+    if (deplacementEnCours || dernier === undefined) {
       return
     }
-    executerDeplacement(dernierDeplacement.media, source, () => {
-      setDernierDeplacement(null)
-      setIndex(dernierDeplacement.index)
+
+    executerDeplacement(dernier.media, source, () => {
+      setDeplacements((precedents) => precedents.slice(0, -1))
+      setIndex(dernier.index)
     })
   }
 
@@ -289,11 +303,11 @@ export default function EcranTri() {
     return (
       <EcranMessage titre="Sorting complete" message={decrireFin(medias.length)}>
         {/*
-          « Cancel last action » reste possible ici : sans ce bouton, le dernier
-          média envoyé à la poubelle ne pourrait plus jamais être récupéré depuis
-          TriPhoto.
+          « Cancel last action » reste possible ici : sans ce bouton, les derniers
+          médias envoyés à la poubelle ne pourraient plus jamais être récupérés
+          depuis TriPhoto.
         */}
-        {dernierDeplacement === null ? null : (
+        {deplacements.length === 0 ? null : (
           <button type="button" className="action" onClick={annulerDernierDeplacement}>
             Cancel last action
           </button>
@@ -323,7 +337,7 @@ export default function EcranTri() {
       return
     }
     executerDeplacement(media, poubelle, () => {
-      setDernierDeplacement({ media, index })
+      setDeplacements((precedents) => [...precedents, { media, index }])
       setIndex(index + 1)
     })
   }
@@ -341,7 +355,7 @@ export default function EcranTri() {
       return
     }
     executerDeplacement(media, dossier, () => {
-      setDernierDeplacement({ media, index })
+      setDeplacements((precedents) => [...precedents, { media, index }])
       setIndex(index + 1)
     })
   }
@@ -396,13 +410,14 @@ export default function EcranTri() {
 
       {/*
         Seul « Cancel last action » peut être inactif : il n'a rien à annuler
-        tant qu'aucun média n'a été envoyé à la poubelle.
+        tant qu'aucun média n'a été déplacé. Il reste actif tant que la pile
+        n'est pas vide, ce qui permet de remonter plusieurs photos de suite.
       */}
       <button
         type="button"
         className="tri__coin tri__coin--annuler"
         onClick={annulerDernierDeplacement}
-        disabled={dernierDeplacement === null}
+        disabled={deplacements.length === 0}
       >
         {/* Coupé en deux lignes : d'un seul tenant, le libellé barrerait le bas
             de l'écran et toucherait la pastille de la direction du bas. */}
