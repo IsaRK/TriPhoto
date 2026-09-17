@@ -1282,6 +1282,85 @@ describe('relire le dossier', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
   })
+
+  it('refuse de relire pendant qu’un déplacement est en vol', async () => {
+    configurationComplete()
+    // Le premier `PATCH` (la suppression) répond tout de suite ; le second
+    // (l'annulation) reste en suspens, comme un déplacement plus lent qu'une
+    // lecture de page.
+    let terminerLannulation = () => {}
+    let patchs = 0
+    const fetchSimule = vi.fn((_url: string, options?: RequestInit) => {
+      if (options?.method === 'PATCH') {
+        patchs += 1
+        if (patchs === 1) {
+          return json({})
+        }
+        return new Promise<Response>((resoudre) => {
+          terminerLannulation = () => resoudre({ ok: true, json: async () => ({}) } as Response)
+        })
+      }
+      return json({
+        value: [elementGraph({ id: 'a', name: 'a.jpg' }), elementGraph({ id: 'b', name: 'b.jpg' })],
+      })
+    })
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    await screen.findByAltText('b.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByText('Sorting complete')
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+
+    // L'annulation attend Graph : les boutons sont estompés, et un clic ne
+    // déclenche aucune lecture.
+    const lectures = fetchSimule.mock.calls.length
+    const relire = screen.getByRole('button', { name: 'Check for new photos' })
+    expect(relire).toBeDisabled()
+    await userEvent.click(relire)
+    expect(fetchSimule.mock.calls.length).toBe(lectures)
+
+    // Une fois Graph d'accord, l'annulation pose la position de « b » dans la
+    // liste d'origine, et la relecture redevient possible.
+    await act(async () => {
+      terminerLannulation()
+    })
+    expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
+    expect(progression()).toBe('2 / 2')
+  })
+
+  it('efface le message d’échec du déplacement en relisant', async () => {
+    configurationComplete()
+    let refuserLeDeplacement = false
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, options?: RequestInit) => {
+        if (options?.method === 'PATCH') {
+          return refuserLeDeplacement
+            ? Promise.resolve({ ok: false, status: 503, json: async () => ({}) } as Response)
+            : json({})
+        }
+        return json({ value: [elementGraph({ id: 'a', name: 'a.jpg' })] })
+      }),
+    )
+    afficher()
+    await screen.findByAltText('a.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByText('Sorting complete')
+
+    // L'annulation échoue : le message reste affiché sur l'écran de fin.
+    refuserLeDeplacement = true
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    await screen.findByText(/The move failed/)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Check for new photos' }))
+
+    // La liste est neuve : l'échec de la passe précédente n'a plus lieu d'être
+    // affiché au-dessus du premier média.
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    expect(screen.queryByText(/The move failed/)).not.toBeInTheDocument()
+  })
 })
 
 describe('erreurs', () => {

@@ -868,3 +868,26 @@ récupérable depuis OneDrive, simplement plus depuis TriPhoto.
 Un échec de relecture (réseau coupé, Graph indisponible) retombe sur l'écran
 d'erreur ordinaire, avec son bouton `Try again` : il n'y a pas eu de second
 mécanisme d'erreur à écrire.
+
+### Ne pas relire pendant qu'un déplacement est en vol
+
+C'est le défaut trouvé en relecture de ce lot, et il n'était pas évident. Les
+boutons `Cancel last action` et `Check for new photos` voisinent sur l'écran de
+fin. Rien ne bouge à l'écran pendant l'appel à Graph : on peut donc croire que
+l'annulation n'a pas pris, et cliquer sur le second bouton.
+
+Or une lecture de page coûte moins cher qu'un déplacement de fichier. La liste
+neuve arrivait alors **avant** la réponse du `PATCH`, et la fonction de succès du
+déplacement posait ensuite `setIndex(dernier.index)` — une position de l'ancienne
+liste — sur la nouvelle. Selon les tailles respectives, on tombait soit sur un
+écran « Sorting complete » pour une liste que personne n'avait vue, soit sur un
+démarrage au milieu de la liste, les premiers médias silencieusement sautés.
+
+La correction suit la règle déjà appliquée partout ailleurs dans l'écran : toute
+action est refusée tant que `deplacementEnCours` est vrai. Les trois boutons de
+l'écran de fin sont en plus **estompés** pendant l'appel, pour que l'attente se
+voie au lieu d'être devinée. `Review again` avait le même trou, et reçoit le même
+garde-fou.
+
+Au passage, un message d'échec de déplacement ne survit plus à une relecture ni à
+un `Review again` : il parlait d'une liste qui n'existe plus.

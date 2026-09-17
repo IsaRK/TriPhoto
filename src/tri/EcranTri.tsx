@@ -87,6 +87,8 @@ export default function EcranTri() {
           setUrlsCassees([])
           setIdsRafraichis([])
           setIdsIllisibles([])
+          // Un échec de déplacement de la passe précédente n'a plus de sens ici.
+          setErreurDeplacement(null)
         }
       })
       .catch((erreur: unknown) => {
@@ -237,13 +239,20 @@ export default function EcranTri() {
    * la liste, or on vient de revenir au début : garder ces positions ferait
    * sauter l'annulation en avant, et pourrait ressortir de son dossier un média
    * déjà rangé lors de la passe précédente.
+   *
+   * On refuse tant qu'un déplacement est en vol : sa fonction de succès pose la
+   * position du média déplacé, et elle s'exécuterait après notre remise à zéro.
    */
   const reprendreDepuisLeDebut = () => {
+    if (deplacementEnCours) {
+      return
+    }
     setIndex(0)
     setDeplacements([])
     setUrlsCassees([])
     setIdsRafraichis([])
     setIdsIllisibles([])
+    setErreurDeplacement(null)
   }
 
   /**
@@ -302,8 +311,17 @@ export default function EcranTri() {
    * Changer `tentative` suffit : l'effet de chargement le surveille, et c'est
    * lui qui remet à zéro la position, la pile d'annulation et les échecs
    * d'affichage. Une liste neuve, c'est une session de tri neuve.
+   *
+   * Comme toutes les autres actions de l'écran, on refuse tant qu'un
+   * déplacement est en vol. Sans ce garde-fou, la lecture pourrait répondre
+   * avant le `PATCH` — une lecture de page coûte moins cher qu'un déplacement de
+   * fichier — et la fonction de succès du déplacement poserait ensuite une
+   * position de l'ancienne liste sur la nouvelle.
    */
   const relireLaListe = () => {
+    if (deplacementEnCours) {
+      return
+    }
     setTentative(tentative + 1)
   }
 
@@ -332,11 +350,26 @@ export default function EcranTri() {
           depuis TriPhoto.
         */}
         {deplacements.length === 0 ? null : (
-          <button type="button" className="action" onClick={annulerDernierDeplacement}>
+          <button
+            type="button"
+            className="action"
+            onClick={annulerDernierDeplacement}
+            disabled={deplacementEnCours}
+          >
             Cancel last action
           </button>
         )}
-        <button type="button" className="action" onClick={reprendreDepuisLeDebut}>
+        {/*
+          Les trois boutons sont estompés le temps d'un déplacement : sans cela
+          rien ne bougerait à l'écran pendant l'appel à Graph, et un second clic
+          serait ignoré sans que l'on comprenne pourquoi.
+        */}
+        <button
+          type="button"
+          className="action"
+          onClick={reprendreDepuisLeDebut}
+          disabled={deplacementEnCours}
+        >
           Review again
         </button>
         {/*
@@ -345,7 +378,12 @@ export default function EcranTri() {
           pour revoir ce qu'on vient de trier, le second pour prendre les photos
           arrivées entre-temps.
         */}
-        <button type="button" className="action" onClick={relireLaListe}>
+        <button
+          type="button"
+          className="action"
+          onClick={relireLaListe}
+          disabled={deplacementEnCours}
+        >
           Check for new photos
         </button>
         {erreurDeplacement === null ? null : (
