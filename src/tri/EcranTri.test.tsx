@@ -883,7 +883,11 @@ describe('poubelle et annulation', () => {
     expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeEnabled()
   })
 
-  it('refuse un déplacement vers un autre OneDrive avec un message lisible', async () => {
+  it('n’essaie même plus de trier vers un autre OneDrive', async () => {
+    // Le mélange de drives est refusé dès l'écran de configuration (Lot 17), et
+    // une configuration enregistrée avant ce refus est nettoyée à la relecture :
+    // la poubelle d'un autre drive disparaît, il n'y a plus rien à trier.
+    // Le garde-fou de `deplacerElement` reste testé dans `deplacements.test.ts`.
     enregistrer({
       source: dossier('Pellicule'),
       poubelle: {
@@ -897,11 +901,8 @@ describe('poubelle et annulation', () => {
     })
     vi.stubGlobal('fetch', simulerGraphEtDeplacements([elementGraph({ id: 'a' })]))
     afficher()
-    await screen.findByAltText('photo.jpg')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
-
-    expect(await screen.findByText(/another OneDrive/)).toBeInTheDocument()
+    expect(await screen.findByText('Cannot sort')).toBeInTheDocument()
   })
 })
 

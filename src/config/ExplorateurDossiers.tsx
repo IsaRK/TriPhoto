@@ -215,7 +215,8 @@ export default function ExplorateurDossiers({
 
       <p className="note">
         A folder shared by someone else only shows up here after an “Add shortcut to My files” from
-        onedrive.live.com.
+        onedrive.live.com. Every folder you pick must be on the same OneDrive: files cannot be moved
+        from one drive to another.
       </p>
     </section>
   )

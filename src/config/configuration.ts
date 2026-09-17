@@ -86,7 +86,7 @@ export function lireConfiguration(): Configuration {
   for (const emplacement of EMPLACEMENTS) {
     configuration[emplacement] = validerDossier(champs[emplacement])
   }
-  return retirerLesDoublons(configuration)
+  return retirerLesDrivesEtrangers(retirerLesDoublons(configuration))
 }
 
 /**
@@ -198,6 +198,33 @@ export function emplacementDejaUtilise(
 }
 
 /**
+ * Cherche un emplacement déjà configuré qui vit sur un **autre** OneDrive que
+ * le dossier proposé. Graph refuse de déplacer un fichier d'un drive vers un
+ * autre : tous les dossiers d'un même tri doivent donc appartenir au même
+ * drive, sans quoi chaque geste échouerait au moment du tri.
+ *
+ * La comparaison se fait contre n'importe quel emplacement occupé, et pas
+ * seulement contre la source : les dossiers peuvent être choisis dans
+ * n'importe quel ordre.
+ */
+export function emplacementSurUnAutreDrive(
+  configuration: Configuration,
+  emplacementVise: Emplacement,
+  dossier: DossierChoisi,
+): Emplacement | null {
+  for (const emplacement of EMPLACEMENTS) {
+    if (emplacement === emplacementVise) {
+      continue
+    }
+    const occupant = configuration[emplacement]
+    if (occupant !== null && occupant.driveId !== dossier.driveId) {
+      return emplacement
+    }
+  }
+  return null
+}
+
+/**
  * Le tri demande le dossier à trier, le dossier Poubelle et au moins une
  * destination : sans poubelle, le bouton Supprimer de l'écran de tri n'aurait
  * nulle part où envoyer les médias.
@@ -274,6 +301,31 @@ function retirerLesDoublons(configuration: Configuration): Configuration {
       resultat[emplacement] = null
     } else {
       dejaVus.push(cle)
+    }
+  }
+
+  return resultat
+}
+
+/**
+ * Vide les emplacements qui vivent sur un autre drive que le premier dossier
+ * rencontré (la source, quand elle est là). Une configuration enregistrée avant
+ * que ce mélange ne soit refusé se retrouverait sinon avec des destinations
+ * inutilisables, dont chaque geste de tri échouerait.
+ */
+function retirerLesDrivesEtrangers(configuration: Configuration): Configuration {
+  const resultat = { ...configuration }
+  let driveDeReference: string | null = null
+
+  for (const emplacement of EMPLACEMENTS) {
+    const dossier = resultat[emplacement]
+    if (dossier === null) {
+      continue
+    }
+    if (driveDeReference === null) {
+      driveDeReference = dossier.driveId
+    } else if (dossier.driveId !== driveDeReference) {
+      resultat[emplacement] = null
     }
   }
 

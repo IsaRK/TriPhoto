@@ -267,6 +267,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 14 | Annulations multiples : remonter plusieurs photos de suite | ✅ Terminé |
 | Lot 15 | Relire le dossier pour prendre les photos arrivées pendant le tri | ✅ Terminé |
 | Lot 16 | La racine du OneDrive devient un dossier choisissable comme un autre | ✅ Terminé |
+| Lot 17 | Mélange de OneDrive refusé dès la configuration, documentation corrigée | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -284,7 +285,8 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 - Connexion et déconnexion avec un compte Microsoft **personnel**
   (authority `https://login.microsoftonline.com/consumers`)
 - Scopes demandés : `User.Read`, `Files.ReadWrite` et `Files.ReadWrite.All`
-  (ce dernier est nécessaire aux dossiers partagés, voir la section dédiée)
+  (ce dernier permet de lire et d'écrire dans un dossier partagé, qui vit dans le
+  OneDrive de quelqu'un d'autre ; voir la section dédiée)
 - Flux par **redirection** (et non popup), plus fiable sur navigateur mobile
 - Appel Microsoft Graph `GET /me` en REST, qui affiche le nom **et l'adresse** du compte
   connecté et prouve que le jeton d'accès fonctionne. Les champs sont demandés
@@ -405,8 +407,8 @@ quatre destinations sont le sujet du Lot 6, décrit plus bas.
 - Un déplacement qui échoue **ne perd rien** : la liste et la pile d'annulation restent en
   place, un message s'affiche et le geste peut être refait.
 - Un dossier situé sur **un autre OneDrive** (dossier partagé) est refusé avec un message
-  clair : `PATCH parentReference` ne traverse pas les drives. Ce cas relève d'une copie,
-  qui reste hors du périmètre.
+  clair : `PATCH parentReference` ne traverse pas les drives. Depuis le Lot 17, le refus
+  arrive dès l'écran de configuration et non plus au premier geste de tri.
 - Les **quatre destinations** ne sont pas encore actives à ce stade : les gestes de swipe
   viennent au Lot 6.
 - Le dossier **Poubelle est désormais obligatoire** pour lancer le tri : sans lui, le
@@ -611,8 +613,10 @@ Retouche d'interface de l'écran de configuration, sans nouvelle fonctionnalité
 
 ## Les dossiers partagés
 
-Cas visé : **la source est chez vous, les destinations sont des dossiers partagés**
-par d'autres personnes (un album de famille, par exemple).
+Cas visé : **trier entièrement à l'intérieur d'un dossier partagé** par quelqu'un
+d'autre — le dossier à trier, les destinations et la Poubelle vivent tous dans
+son OneDrive. Trier depuis son propre OneDrive vers un dossier partagé (ou
+l'inverse) n'est pas possible : voir « Conséquence sur le tri » plus bas.
 
 ### Comment les rendre visibles
 
@@ -643,35 +647,35 @@ renvoyer des données en novembre 2026, sans remplacement annoncé pour les comp
 personnels. Les raccourcis, eux, sont de simples éléments de votre drive et ne
 dépendent d'aucune API en sursis.
 
-### Conséquence sur le tri : une copie, pas un déplacement
+### Conséquence sur le tri : tout doit vivre sur le même OneDrive
 
 Microsoft Graph refuse de déplacer un fichier d'un drive vers un autre :
 *« Items cannot be moved between Drives using this request »*. Le
 `PATCH parentReference` utilisé pour un tri ordinaire ne franchit pas cette
 frontière.
 
-Quand la destination est dans un autre drive, TriPhoto procédera donc en deux
-temps (Lot 5) :
+**TriPhoto ne contourne pas cette limite.** Un contournement existe — copier le
+fichier avec `POST /drives/{driveId}/items/{id}/copy`, opération asynchrone qu'il
+faut ensuite interroger jusqu'à son terme, puis déplacer l'original vers la
+Poubelle — mais il a été écarté :
 
-1. `POST /drives/{driveId}/items/{id}/copy` vers le dossier de destination —
-   l'opération est asynchrone, Graph renvoie un `202` et une URL à interroger
-   jusqu'à la fin de la copie ;
-2. l'original, qui est chez vous, est **déplacé vers votre dossier Poubelle** — et
-   non supprimé.
+- il laisse **une copie chez le propriétaire du dossier partagé**, qu'une
+  annulation ne pourrait pas défaire sans supprimer un fichier chez quelqu'un
+  d'autre — ce que TriPhoto ne fera pas ;
+- une copie est bien plus lente qu'un déplacement, alors que le tri se veut
+  immédiat ;
+- il rendrait « annuler » asymétrique : le geste ne serait plus réversible, alors
+  que c'est toute la promesse du bouton.
 
-Le principe « on ne supprime jamais rien » est préservé côté source : le fichier
-d'origine reste chez vous, dans la Poubelle, et l'annulation le remet dans le
-dossier source.
+La règle est donc simple : **le dossier à trier, les quatre destinations et la
+Poubelle doivent appartenir au même OneDrive.** Le mélange est refusé dès l'écran
+de configuration, avec un message qui nomme l'emplacement en conflit — plutôt que
+de laisser chaque geste de tri échouer une fois le tri lancé.
 
-En revanche, **l'annulation ne défait pas la copie** : celle-ci reste dans l'album
-de son propriétaire. L'enlever supposerait de supprimer un fichier chez quelqu'un
-d'autre, ce que TriPhoto ne fera pas. Une annulation après un tri vers un dossier
-partagé laisse donc un doublon à nettoyer à la main. Le prix à payer est aussi la
-lenteur : une copie est bien plus longue qu'un déplacement.
-
-Ce mécanisme impose le scope `Files.ReadWrite.All` en plus de `Files.ReadWrite`,
-pour pouvoir écrire dans le drive de quelqu'un d'autre. Au prochain lancement,
-Microsoft redemandera donc votre consentement.
+Rien n'interdit en revanche de trier **entièrement à l'intérieur** d'un drive
+partagé : la source et les destinations y sont alors toutes les deux, et les
+déplacements restent internes à ce drive. C'est ce que permet le scope
+`Files.ReadWrite.All`.
 
 ## Limitations connues
 
@@ -680,8 +684,8 @@ Microsoft redemandera donc votre consentement.
   faute d'API pérenne.
 - Écrire dans un dossier partagé suppose que son propriétaire vous a donné le droit
   de **modification**, pas seulement de lecture.
-- Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse
-  la copie chez son propriétaire.
+- On ne peut pas trier depuis son propre OneDrive vers un dossier partagé, ni
+  l'inverse : Graph ne déplace pas un fichier d'un drive à l'autre.
 - OneDrive ne produit pas toujours la miniature de tous les fichiers d'une page.
   Les médias concernés sont conservés avec une miniature absente, à charge de
   l'écran de tri de se rabattre sur le fichier lui-même.
@@ -944,3 +948,52 @@ L'identifiant de la racine ne sert qu'à proposer la racine elle-même : son éc
 est désormais avalé (`.catch(() => null)`). Le bouton `Choose this folder` reste
 estompé à la racine, exactement comme avant le lot, mais la navigation vers les
 sous-dossiers continue de fonctionner.
+
+## Contenu du Lot 17
+
+Ce lot ferme un piège et corrige une documentation qui décrivait un mécanisme
+jamais écrit.
+
+### Le piège : une configuration acceptée, un tri impossible
+
+L'explorateur laissait choisir un dossier partagé comme destination alors que la
+source était dans votre OneDrive. La configuration s'enregistrait sans rien dire,
+le bouton `Start sorting` s'activait — et **chaque geste de tri échouait** avec
+« OneDrive cannot move a file from one drive to another ». Rien n'indiquait
+lequel des six dossiers était fautif, ni comment s'en sortir.
+
+Le refus arrive maintenant **au moment du choix**. `emplacementSurUnAutreDrive`
+compare le drive du dossier proposé à celui de tous les emplacements déjà
+occupés, et le message nomme celui qui est en conflit :
+
+> “Album de Paul” is on a different OneDrive than “Folder to sort”. OneDrive
+> cannot move a file from one drive to another, so every folder must live on the
+> same OneDrive. Choose another folder, or clear the other one first.
+
+La comparaison se fait contre **n'importe quel** emplacement occupé et pas
+seulement contre la source : les dossiers peuvent être choisis dans l'ordre que
+l'on veut, et la source est parfois posée en dernier. L'emplacement que l'on est
+en train de remplacer est ignoré, sinon on ne pourrait jamais corriger le premier
+dossier choisi.
+
+Une configuration enregistrée avant ce lot pouvait déjà contenir un tel mélange :
+`lireConfiguration` la nettoie à la relecture, en gardant le premier dossier
+rencontré et en vidant ceux qui vivent ailleurs, comme elle le faisait déjà pour
+les doublons.
+
+Ce qui reste permis : trier **entièrement à l'intérieur** d'un dossier partagé.
+Ce n'est pas le partage qui gêne, c'est le passage d'un drive à l'autre.
+
+### La documentation : une copie qui n'a jamais existé
+
+Le README annonçait que TriPhoto copierait le fichier
+(`POST /drives/{driveId}/items/{id}/copy`) quand la destination était sur un autre
+drive, et listait dans ses limitations « l'annulation laisse la copie chez son
+propriétaire ». Rien de tout cela n'a jamais été écrit : `deplacerElement` refuse
+le déplacement inter-drive **avant même le premier appel réseau**. Aucune copie
+n'a donc jamais été créée, et il n'y a rien à nettoyer chez personne.
+
+La section dit maintenant ce que le code fait, et explique pourquoi la copie a
+été écartée plutôt que remise à plus tard : elle laisserait justement un doublon
+qu'une annulation ne pourrait pas défaire sans supprimer un fichier chez
+quelqu'un d'autre.
