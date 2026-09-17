@@ -365,6 +365,55 @@ describe('écran de configuration', () => {
   })
 })
 
+describe('refus d’un dossier sur un autre OneDrive', () => {
+  /** Ajoute à la racine un raccourci vers le dossier partagé par Paul. */
+  function simulerGraphAvecPartage() {
+    const ordinaire = simulerGraph()
+    return vi.fn((url: string) => {
+      if (url.includes('/root/children')) {
+        return json({
+          value: [
+            { id: 'photos', name: 'Photos', folder: { childCount: 3 } },
+            {
+              id: 'raccourci',
+              name: 'Album de Paul',
+              remoteItem: {
+                id: 'album',
+                folder: { childCount: 5 },
+                parentReference: { driveId: 'drive-de-paul' },
+              },
+            },
+          ],
+        })
+      }
+      return ordinaire(url)
+    })
+  }
+
+  it('prévient et n’enregistre rien quand le drive diffère de la source', async () => {
+    vi.stubGlobal('fetch', simulerGraphAvecPartage())
+    enregistrer({ source: dossier('photos', 'Photos') })
+    afficher()
+
+    await choisirDossierPour('Left', 'Album de Paul')
+
+    expect(
+      await screen.findByText(/is on a different OneDrive than “Folder to sort”/),
+    ).toBeInTheDocument()
+    expect(configurationEnregistree().gauche).toBeNull()
+  })
+
+  it('accepte le dossier partagé quand plus rien ne le contredit', async () => {
+    // La source vient d'être effacée : le drive de Paul devient la référence.
+    vi.stubGlobal('fetch', simulerGraphAvecPartage())
+    afficher()
+
+    await choisirDossierPour('Left', 'Album de Paul')
+
+    expect(configurationEnregistree().gauche?.driveId).toBe('drive-de-paul')
+  })
+})
+
 describe('bouton Exit', () => {
   it('ferme l’application', async () => {
     const fermer = vi.spyOn(window, 'close').mockImplementation(() => {})

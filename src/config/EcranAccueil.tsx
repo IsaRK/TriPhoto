@@ -11,6 +11,7 @@ import {
   definirTitre,
   ecrireConfiguration,
   emplacementDejaUtilise,
+  emplacementSurUnAutreDrive,
   lireConfiguration,
   normaliserTitre,
   peutCommencerLeTri,
@@ -95,6 +96,15 @@ export default function EcranAccueil() {
     if (occupant !== null) {
       setAvertissement(
         `“${choisi.nom}” is already used for “${libelleDe(occupant)}”. Choose another folder.`,
+      )
+      return
+    }
+    const etranger = emplacementSurUnAutreDrive(configuration, emplacementEnCours, choisi)
+    if (etranger !== null) {
+      setAvertissement(
+        `“${choisi.nom}” is on a different OneDrive than “${libelleDe(etranger)}”. ` +
+          'OneDrive cannot move a file from one drive to another, so every folder ' +
+          'must live on the same OneDrive. Choose another folder, or clear the other one first.',
       )
       return
     }

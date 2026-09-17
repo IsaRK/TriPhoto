@@ -8,6 +8,7 @@ import {
   definirTitre,
   ecrireConfiguration,
   emplacementDejaUtilise,
+  emplacementSurUnAutreDrive,
   lireConfiguration,
   normaliserTitre,
   peutCommencerLeTri,
@@ -106,6 +107,37 @@ describe('persistance de la configuration', () => {
 
     expect(configuration.source).toEqual(dossier('a'))
     expect(configuration.gauche).toBeNull()
+  })
+
+  it('vide les emplacements posés sur un autre drive que la source', () => {
+    // Le cas vient d'une configuration enregistrée avant que le mélange de
+    // drives ne soit refusé : chaque geste de tri y échouerait.
+    window.localStorage.setItem(
+      CLE,
+      JSON.stringify({
+        source: dossier('a', 'mon-drive'),
+        gauche: dossier('b', 'drive-de-paul'),
+        droite: dossier('c', 'mon-drive'),
+      }),
+    )
+
+    const configuration = lireConfiguration()
+
+    expect(configuration.source).toEqual(dossier('a', 'mon-drive'))
+    expect(configuration.gauche).toBeNull()
+    expect(configuration.droite).toEqual(dossier('c', 'mon-drive'))
+  })
+
+  it('garde une configuration entièrement posée sur un drive partagé', () => {
+    // Rien n'interdit de trier à l'intérieur du OneDrive de quelqu'un d'autre :
+    // ce qui est refusé, c'est de passer d'un drive à l'autre.
+    const configuration = configurationAvec({
+      source: dossier('a', 'drive-de-paul'),
+      gauche: dossier('b', 'drive-de-paul'),
+    })
+    ecrireConfiguration(configuration)
+
+    expect(lireConfiguration()).toEqual(configuration)
   })
 
   it('renvoie une configuration vide quand le stockage est inaccessible', () => {
@@ -355,6 +387,48 @@ describe('dossier déjà utilisé', () => {
     })
 
     expect(emplacementDejaUtilise(configuration, 'gauche', dossier('a', 'autre-drive'))).toBeNull()
+  })
+})
+
+describe('dossier sur un autre OneDrive', () => {
+  it('signale l’emplacement déjà posé sur un autre drive', () => {
+    const configuration = configurationAvec({ source: dossier('a', 'mon-drive') })
+
+    expect(emplacementSurUnAutreDrive(configuration, 'gauche', dossier('b', 'drive-de-paul'))).toBe(
+      'source',
+    )
+  })
+
+  it('accepte un dossier du même drive', () => {
+    const configuration = configurationAvec({ source: dossier('a', 'mon-drive') })
+
+    expect(
+      emplacementSurUnAutreDrive(configuration, 'gauche', dossier('b', 'mon-drive')),
+    ).toBeNull()
+  })
+
+  it('accepte le tout premier dossier, quel que soit son drive', () => {
+    expect(
+      emplacementSurUnAutreDrive(CONFIGURATION_VIDE, 'gauche', dossier('b', 'drive-de-paul')),
+    ).toBeNull()
+  })
+
+  it('ignore l’emplacement qu’on est en train de remplacer', () => {
+    // Sinon on ne pourrait jamais corriger le premier dossier choisi : il se
+    // comparerait à lui-même et bloquerait tout changement de drive.
+    const configuration = configurationAvec({ gauche: dossier('a', 'drive-de-paul') })
+
+    expect(
+      emplacementSurUnAutreDrive(configuration, 'gauche', dossier('b', 'mon-drive')),
+    ).toBeNull()
+  })
+
+  it('compare aussi contre une destination quand la source n’est pas encore choisie', () => {
+    const configuration = configurationAvec({ poubelle: dossier('a', 'drive-de-paul') })
+
+    expect(emplacementSurUnAutreDrive(configuration, 'source', dossier('b', 'mon-drive'))).toBe(
+      'poubelle',
+    )
   })
 })
 
