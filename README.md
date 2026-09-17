@@ -265,6 +265,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 12 | Revue de sécurité et durcissement de la pagination Graph | ✅ Terminé |
 | Lot 13 | Liens OneDrive expirés renouvelés tout seuls pendant le tri | ✅ Terminé |
 | Lot 14 | Annulations multiples : remonter plusieurs photos de suite | ✅ Terminé |
+| Lot 15 | Relire le dossier pour prendre les photos arrivées pendant le tri | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -681,8 +682,6 @@ Microsoft redemandera donc votre consentement.
 - Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse
   la copie chez son propriétaire.
 - La racine du OneDrive n'est pas choisissable : il faut ouvrir un dossier.
-- La liste des médias est lue une seule fois à l'entrée dans l'écran de tri. Les
-  photos ajoutées au dossier pendant le tri n'apparaissent qu'au rechargement.
 - OneDrive ne produit pas toujours la miniature de tous les fichiers d'une page.
   Les médias concernés sont conservés avec une miniature absente, à charge de
   l'écran de tri de se rabattre sur le fichier lui-même.
@@ -819,3 +818,76 @@ cessent d'avoir un sens : quand la liste des médias est relue, et quand
 « Review again » repart du premier média. Sans cette seconde remise à zéro, une
 annulation de trop lors de la seconde passe ferait ressortir de son dossier une
 photo rangée pendant la première.
+
+## Contenu du Lot 15
+
+La liste des médias est lue **une seule fois**, à l'entrée dans l'écran de tri.
+C'est voulu : une liste qui bougerait toute seule ferait sauter la photo sous le
+doigt au moment du swipe, et la position mémorisée pour l'annulation ne voudrait
+plus rien dire. L'effet de bord était qu'une photo déposée dans le dossier
+pendant le tri restait invisible jusqu'au rechargement complet de l'application.
+
+### Un bouton, au seul moment où c'est sans risque
+
+Le bouton **`Check for new photos`** redemande la liste à OneDrive. Il n'apparaît
+qu'aux deux moments où il n'y a plus rien à interrompre :
+
+- sur l'écran **`Sorting complete`**, quand tous les médias ont été vus ;
+- sur l'écran **`Nothing to sort`**, quand le dossier était vide à l'ouverture.
+
+Pendant le tri lui-même, il n'y a pas de bouton de rafraîchissement : perdre sa
+place au milieu de trois cents photos coûte bien plus cher que d'attendre la fin
+de la passe.
+
+### Deux boutons voisins qui ne font pas la même chose
+
+Sur l'écran de fin, `Review again` et `Check for new photos` se ressemblent, mais
+ne lisent pas la même source :
+
+| Bouton | Ce qu'il fait | Quand s'en servir |
+| --- | --- | --- |
+| `Review again` | Repasse sur la liste **déjà en mémoire**, depuis le premier média | Revoir ce qu'on vient de trier |
+| `Check for new photos` | **Redemande la liste à OneDrive** | Prendre les photos arrivées entre-temps |
+
+Après une relecture, le dossier ne contient plus que les médias qu'on n'a pas
+rangés : ceux passés avec `Skip`, et les nouveaux. La liste est donc
+naturellement plus courte à chaque passe, jusqu'à ce qu'il ne reste rien.
+
+### Une relecture, c'est une session de tri neuve
+
+Le bouton se contente d'incrémenter un compteur (`tentative`) que l'effet de
+chargement surveille. Tout le reste est déjà écrit : c'est cet effet qui remet à
+zéro la position, la pile d'annulation et la mémoire des échecs d'affichage.
+Aucun chemin de remise à zéro en double, donc aucun risque d'en oublier un.
+
+La contrepartie est assumée : relire le dossier **vide la pile d'annulation**.
+Les positions qu'elle mémorise désignent des rangs dans l'ancienne liste, qui
+n'existe plus. Un média envoyé à la poubelle juste avant une relecture reste
+récupérable depuis OneDrive, simplement plus depuis TriPhoto.
+
+Un échec de relecture (réseau coupé, Graph indisponible) retombe sur l'écran
+d'erreur ordinaire, avec son bouton `Try again` : il n'y a pas eu de second
+mécanisme d'erreur à écrire.
+
+### Ne pas relire pendant qu'un déplacement est en vol
+
+C'est le défaut trouvé en relecture de ce lot, et il n'était pas évident. Les
+boutons `Cancel last action` et `Check for new photos` voisinent sur l'écran de
+fin. Rien ne bouge à l'écran pendant l'appel à Graph : on peut donc croire que
+l'annulation n'a pas pris, et cliquer sur le second bouton.
+
+Or une lecture de page coûte moins cher qu'un déplacement de fichier. La liste
+neuve arrivait alors **avant** la réponse du `PATCH`, et la fonction de succès du
+déplacement posait ensuite `setIndex(dernier.index)` — une position de l'ancienne
+liste — sur la nouvelle. Selon les tailles respectives, on tombait soit sur un
+écran « Sorting complete » pour une liste que personne n'avait vue, soit sur un
+démarrage au milieu de la liste, les premiers médias silencieusement sautés.
+
+La correction suit la règle déjà appliquée partout ailleurs dans l'écran : toute
+action est refusée tant que `deplacementEnCours` est vrai. Les trois boutons de
+l'écran de fin sont en plus **estompés** pendant l'appel, pour que l'attente se
+voie au lieu d'être devinée. `Review again` avait le même trou, et reçoit le même
+garde-fou.
+
+Au passage, un message d'échec de déplacement ne survit plus à une relecture ni à
+un `Review again` : il parlait d'une liste qui n'existe plus.

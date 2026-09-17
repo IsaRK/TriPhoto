@@ -87,6 +87,8 @@ export default function EcranTri() {
           setUrlsCassees([])
           setIdsRafraichis([])
           setIdsIllisibles([])
+          // Un échec de déplacement de la passe précédente n'a plus de sens ici.
+          setErreurDeplacement(null)
         }
       })
       .catch((erreur: unknown) => {
@@ -237,13 +239,20 @@ export default function EcranTri() {
    * la liste, or on vient de revenir au début : garder ces positions ferait
    * sauter l'annulation en avant, et pourrait ressortir de son dossier un média
    * déjà rangé lors de la passe précédente.
+   *
+   * On refuse tant qu'un déplacement est en vol : sa fonction de succès pose la
+   * position du média déplacé, et elle s'exécuterait après notre remise à zéro.
    */
   const reprendreDepuisLeDebut = () => {
+    if (deplacementEnCours) {
+      return
+    }
     setIndex(0)
     setDeplacements([])
     setUrlsCassees([])
     setIdsRafraichis([])
     setIdsIllisibles([])
+    setErreurDeplacement(null)
   }
 
   /**
@@ -292,13 +301,40 @@ export default function EcranTri() {
     })
   }
 
+  /**
+   * Relit le dossier à trier depuis OneDrive.
+   *
+   * C'est le seul moyen de voir les photos ajoutées au dossier depuis l'entrée
+   * dans l'écran de tri : la liste n'est lue qu'une fois, exprès, pour qu'elle
+   * ne bouge pas sous les doigts pendant qu'on swipe.
+   *
+   * Changer `tentative` suffit : l'effet de chargement le surveille, et c'est
+   * lui qui remet à zéro la position, la pile d'annulation et les échecs
+   * d'affichage. Une liste neuve, c'est une session de tri neuve.
+   *
+   * Comme toutes les autres actions de l'écran, on refuse tant qu'un
+   * déplacement est en vol. Sans ce garde-fou, la lecture pourrait répondre
+   * avant le `PATCH` — une lecture de page coûte moins cher qu'un déplacement de
+   * fichier — et la fonction de succès du déplacement poserait ensuite une
+   * position de l'ancienne liste sur la nouvelle.
+   */
+  const relireLaListe = () => {
+    if (deplacementEnCours) {
+      return
+    }
+    setTentative(tentative + 1)
+  }
+
   if (medias.length === 0) {
     return (
       <EcranMessage
         titre="Nothing to sort"
         message={`“${source.nom}” contains no photos or videos.`}
       >
-        <Link className="action" to="/">
+        <button type="button" className="action" onClick={relireLaListe}>
+          Check for new photos
+        </button>
+        <Link className="action action--discrete" to="/">
           Back to settings
         </Link>
       </EcranMessage>
@@ -314,12 +350,41 @@ export default function EcranTri() {
           depuis TriPhoto.
         */}
         {deplacements.length === 0 ? null : (
-          <button type="button" className="action" onClick={annulerDernierDeplacement}>
+          <button
+            type="button"
+            className="action"
+            onClick={annulerDernierDeplacement}
+            disabled={deplacementEnCours}
+          >
             Cancel last action
           </button>
         )}
-        <button type="button" className="action" onClick={reprendreDepuisLeDebut}>
+        {/*
+          Les trois boutons sont estompés le temps d'un déplacement : sans cela
+          rien ne bougerait à l'écran pendant l'appel à Graph, et un second clic
+          serait ignoré sans que l'on comprenne pourquoi.
+        */}
+        <button
+          type="button"
+          className="action"
+          onClick={reprendreDepuisLeDebut}
+          disabled={deplacementEnCours}
+        >
           Review again
+        </button>
+        {/*
+          « Review again » repasse sur la liste déjà en mémoire ; « Check for new
+          photos » la redemande à OneDrive. Les deux sont utiles : le premier
+          pour revoir ce qu'on vient de trier, le second pour prendre les photos
+          arrivées entre-temps.
+        */}
+        <button
+          type="button"
+          className="action"
+          onClick={relireLaListe}
+          disabled={deplacementEnCours}
+        >
+          Check for new photos
         </button>
         {erreurDeplacement === null ? null : (
           <p className="note" role="alert">
