@@ -762,8 +762,23 @@ traitement : si son lien a expiré, il est renouvelé avant même d'être affich
 
 ### Et si le lien frais ne marche pas non plus
 
-On n'essaie **qu'une fois par média**. Un second échec veut dire autre chose
-qu'un lien périmé — fichier supprimé entre-temps, format que le navigateur ne
-sait pas lire — et réessayer en boucle ne ferait que marteler Graph. Dans ce cas
-la carte affiche un message clair, et les boutons « Delete » et « Skip » restent
-actifs : un média qu'on ne peut pas voir reste un média qu'on peut ranger.
+On n'essaie **qu'une fois par média et par passe**. Un second échec veut dire
+autre chose qu'un lien périmé — fichier supprimé entre-temps, format que le
+navigateur ne sait pas lire — et réessayer en boucle ne ferait que marteler
+Graph. Dans ce cas la carte affiche un message clair, et les boutons « Delete »
+et « Skip » restent actifs : un média qu'on ne peut pas voir reste un média qu'on
+peut ranger. Le bouton « Review again », qui relance une passe sur le même
+dossier, efface cette mémoire : une heure plus tard, les liens renouvelés ont pu
+expirer à leur tour et chaque média mérite une seconde chance.
+
+### Deux pièges évités
+
+Le raisonnement porte sur **l'URL** et non sur le média. La carte affichée et le
+média préchargé hors écran peuvent buter sur le même lien expiré à quelques
+instants d'intervalle ; sans cette distinction, le second échec aurait été pris
+pour l'échec du lien frais, et une photo parfaitement valide se serait retrouvée
+condamnée pour le reste de la session.
+
+Une **session Microsoft expire elle aussi au bout d'une heure**. C'est le même
+moment, mais pas le même problème : si la relecture échoue faute de jeton, l'écran
+propose de se reconnecter, au lieu d'accuser les médias les uns après les autres.

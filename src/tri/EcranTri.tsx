@@ -49,6 +49,12 @@ export default function EcranTri() {
   const [dernierDeplacement, setDernierDeplacement] = useState<Deplacement | null>(null)
   const [deplacementEnCours, setDeplacementEnCours] = useState(false)
   const [erreurDeplacement, setErreurDeplacement] = useState<string | null>(null)
+  /**
+   * URL d'affichage déjà signalées comme cassées. La carte et le préchargement
+   * peuvent échouer sur le même lien à quelques instants d'intervalle : sans
+   * cette liste, le second échec serait pris pour un échec du lien frais.
+   */
+  const [urlsCassees, setUrlsCassees] = useState<string[]>([])
   /** Médias dont on a déjà redemandé un lien frais : on ne le fait qu'une fois. */
   const [idsRafraichis, setIdsRafraichis] = useState<string[]>([])
   /** Médias qui n'ont pas pu être affichés, même avec un lien frais. */
@@ -70,6 +76,7 @@ export default function EcranTri() {
         if (!annule) {
           setEtat({ statut: 'pret', medias })
           setIndex(0)
+          setUrlsCassees([])
           setIdsRafraichis([])
           setIdsIllisibles([])
         }
@@ -161,14 +168,22 @@ export default function EcranTri() {
    * seul média, et l'affichage repart tout seul dès que la liste est mise à
    * jour : l'utilisateur ne voit qu'un bref clignotement.
    *
-   * On n'essaie qu'une fois par média. Un second échec signifie autre chose
-   * qu'un lien périmé — fichier supprimé entre-temps, format que le navigateur
-   * ne sait pas lire — et réessayer en boucle ne ferait que marteler Graph.
+   * On raisonne sur l'URL et non sur le média : la carte et le préchargement
+   * peuvent buter sur le même lien pendant que la relecture est en route, et ce
+   * second échec ne dit rien de neuf. Seul un échec sur une URL jamais vue
+   * compte, et il n'y a qu'une relecture par média et par passe : le lien frais
+   * qui casse à son tour signifie autre chose qu'une expiration — fichier
+   * supprimé entre-temps, format que le navigateur ne sait pas lire — et
+   * réessayer en boucle ne ferait que marteler Graph.
    */
   const signalerEchecChargement = (aRecharger: MediaOneDrive) => {
-    if (idsIllisibles.includes(aRecharger.id)) {
+    const url = urlAffichage(aRecharger)
+
+    if (url === null || urlsCassees.includes(url)) {
       return
     }
+
+    setUrlsCassees((precedentes) => [...precedentes, url])
 
     if (idsRafraichis.includes(aRecharger.id)) {
       setIdsIllisibles((precedents) => [...precedents, aRecharger.id])
@@ -193,9 +208,28 @@ export default function EcranTri() {
             : precedent,
         )
       })
-      .catch(() => {
+      .catch((erreur: unknown) => {
+        // Une session Microsoft expire elle aussi au bout d'une heure : c'est
+        // le même moment, mais pas le même problème. Le dire franchement évite
+        // d'accuser les médias les uns après les autres.
+        if (estInteractionRequise(erreur)) {
+          setEtat({ statut: 'sessionExpiree' })
+          return
+        }
         setIdsIllisibles((precedents) => [...precedents, aRecharger.id])
       })
+  }
+
+  /**
+   * Repart du premier média. Les échecs de chargement de la passe précédente
+   * sont oubliés : les liens renouvelés il y a une heure ont pu expirer à leur
+   * tour, et un média jugé illisible mérite une seconde chance.
+   */
+  const reprendreDepuisLeDebut = () => {
+    setIndex(0)
+    setUrlsCassees([])
+    setIdsRafraichis([])
+    setIdsIllisibles([])
   }
 
   /**
@@ -264,7 +298,7 @@ export default function EcranTri() {
             Cancel last action
           </button>
         )}
-        <button type="button" className="action" onClick={() => setIndex(0)}>
+        <button type="button" className="action" onClick={reprendreDepuisLeDebut}>
           Review again
         </button>
         {erreurDeplacement === null ? null : (
