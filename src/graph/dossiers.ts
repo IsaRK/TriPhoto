@@ -69,9 +69,50 @@ export async function lireIdDeMonDrive(jetonAcces: string): Promise<string> {
   return drive.id
 }
 
+let idRacineMemorise: string | undefined
+
 /** Réservé aux tests : repart d'un module vierge. */
-export function oublierIdDeMonDrive(): void {
+export function oublierLesIdentifiantsMemorises(): void {
   idMonDriveMemorise = undefined
+  idRacineMemorise = undefined
+}
+
+/**
+ * Le dossier racine du OneDrive, avec son identifiant.
+ *
+ * On ne s'en sert jamais pour lire un dossier — `/me/drive/root/children` suffit
+ * — mais pour pouvoir **choisir** la racine comme dossier à trier ou comme
+ * destination. Un déplacement Graph se fait vers `parentReference.id` : sans cet
+ * identifiant, la racine resterait le seul dossier du OneDrive inutilisable.
+ *
+ * Comme celui du drive, il ne change jamais : on ne le demande qu'une fois.
+ */
+export async function lireDossierRacine(
+  jetonAcces: string,
+): Promise<{ id: string; driveId: string }> {
+  const driveId = await lireIdDeMonDrive(jetonAcces)
+
+  if (idRacineMemorise) {
+    return { id: idRacineMemorise, driveId }
+  }
+
+  const reponse = await fetch('https://graph.microsoft.com/v1.0/me/drive/root?$select=id', {
+    headers: enTetes(jetonAcces),
+  })
+
+  if (!reponse.ok) {
+    throw new Error(
+      `Microsoft Graph refused to read your OneDrive root folder (code ${reponse.status}).`,
+    )
+  }
+
+  const racine = (await reponse.json()) as { id?: string }
+  if (!racine.id) {
+    throw new Error('Microsoft Graph did not return your root folder identifier.')
+  }
+
+  idRacineMemorise = racine.id
+  return { id: racine.id, driveId }
 }
 
 export async function listerDossiersRacine(jetonAcces: string): Promise<DossierOneDrive[]> {

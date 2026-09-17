@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import EcranAccueil from './EcranAccueil'
-import { oublierIdDeMonDrive } from '../graph/dossiers'
+import { oublierLesIdentifiantsMemorises } from '../graph/dossiers'
 import type { Configuration } from './configuration'
 import { CONFIGURATION_VIDE, TITRE_LONGUEUR_MAX } from './configuration'
 
@@ -51,6 +51,9 @@ function simulerGraph() {
     }
     if (url.includes('/me/drive?')) {
       return json({ id: 'mon-drive' })
+    }
+    if (url.includes('/me/drive/root?')) {
+      return json({ id: 'id-racine' })
     }
     if (url.includes('/root/children')) {
       return json({
@@ -107,7 +110,7 @@ async function choisirDossierPour(libelleEmplacement: string, nom: string) {
 
 beforeEach(() => {
   window.localStorage.clear()
-  oublierIdDeMonDrive()
+  oublierLesIdentifiantsMemorises()
   etatMsal.comptes = [{ ...compte }]
   instanceSimulee.acquireTokenSilent.mockResolvedValue({
     accessToken: 'jeton-de-test',

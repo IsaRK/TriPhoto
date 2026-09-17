@@ -1,9 +1,9 @@
 import { InteractionRequiredAuthError } from '@azure/msal-browser'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ExplorateurDossiers from './ExplorateurDossiers'
-import { oublierIdDeMonDrive } from '../graph/dossiers'
+import { oublierLesIdentifiantsMemorises } from '../graph/dossiers'
 
 const instanceSimulee = {
   acquireTokenSilent: vi.fn(),
@@ -49,6 +49,9 @@ function simulerGraph(contenus: Record<string, object[]>) {
     if (url.includes('/me/drive?')) {
       return json({ id: 'mon-drive' })
     }
+    if (url.includes('/me/drive/root?')) {
+      return json({ id: 'id-racine' })
+    }
     if (url.includes('/root/children')) {
       return json({ value: contenus['racine'] ?? [] })
     }
@@ -59,7 +62,7 @@ function simulerGraph(contenus: Record<string, object[]>) {
 }
 
 beforeEach(() => {
-  oublierIdDeMonDrive()
+  oublierLesIdentifiantsMemorises()
   instanceSimulee.acquireTokenSilent.mockResolvedValue({ accessToken: 'jeton-de-test' })
   instanceSimulee.loginRedirect.mockResolvedValue(undefined)
 })
@@ -109,13 +112,107 @@ describe('explorateur de dossiers', () => {
     expect(screen.queryByText('2024')).not.toBeInTheDocument()
   })
 
-  it('interdit de choisir la racine du OneDrive', async () => {
+  it('permet de choisir la racine du OneDrive', async () => {
+    const onChoisir = vi.fn()
     vi.stubGlobal('fetch', simulerGraph({ racine: [dossier('1', 'Photos')] }))
 
+    render(<ExplorateurDossiers onChoisir={onChoisir} />)
+    await screen.findByText('Photos')
+    await userEvent.click(screen.getByRole('button', { name: 'Choose this folder' }))
+
+    // La racine est un dossier comme un autre : elle a un identifiant Graph,
+    // et c'est lui qu'il faut pour y déplacer un média.
+    expect(onChoisir).toHaveBeenCalledWith({
+      id: 'id-racine',
+      driveId: 'mon-drive',
+      nom: 'OneDrive',
+      chemin: 'OneDrive',
+    })
+  })
+
+  it('attend l’identifiant de la racine avant de la proposer', async () => {
+    let repondreRacine = () => {}
+    const fetchSimule = vi.fn((url: string) => {
+      if (url.includes('/me/drive?')) {
+        return json({ id: 'mon-drive' })
+      }
+      if (url.includes('/me/drive/root?')) {
+        return new Promise<Response>((resoudre) => {
+          repondreRacine = () =>
+            resoudre({ ok: true, status: 200, json: async () => ({ id: 'id-racine' }) } as Response)
+        })
+      }
+      return json({ value: [dossier('1', 'Photos')] })
+    })
+    vi.stubGlobal('fetch', fetchSimule)
+
     render(<ExplorateurDossiers onChoisir={vi.fn()} />)
+    await screen.findByText('Loading folders…')
+    expect(screen.getByRole('button', { name: 'Choose this folder' })).toBeDisabled()
+
+    await act(async () => {
+      repondreRacine()
+    })
 
     await screen.findByText('Photos')
-    expect(screen.getByRole('button', { name: 'Choose this folder' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Choose this folder' })).toBeEnabled()
+  })
+
+  it('reste navigable quand l’identifiant de la racine est refusé', async () => {
+    const onChoisir = vi.fn()
+    const fetchSimule = vi.fn((url: string) => {
+      if (url.includes('/me/drive?')) {
+        return json({ id: 'mon-drive' })
+      }
+      if (url.includes('/me/drive/root?')) {
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          text: async () => 'Too many requests',
+        } as Response)
+      }
+      if (url.includes('/root/children')) {
+        return json({ value: [dossier('1', 'Photos')] })
+      }
+      return json({ value: [dossier('2', '2024')] })
+    })
+    vi.stubGlobal('fetch', fetchSimule)
+
+    render(<ExplorateurDossiers onChoisir={onChoisir} />)
+
+    // La racine seule devient inchoisissable ; tout le reste de l'arborescence
+    // doit rester atteignable, sans quoi la configuration serait bloquée.
+    await userEvent.click(await screen.findByText('Photos'))
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose this folder' }))
+
+    expect(onChoisir).toHaveBeenCalledWith({
+      id: '1',
+      driveId: 'mon-drive',
+      nom: 'Photos',
+      chemin: 'OneDrive / Photos',
+    })
+  })
+
+  it('revient à la racine choisissable après être remonté du fil d’Ariane', async () => {
+    const onChoisir = vi.fn()
+    vi.stubGlobal(
+      'fetch',
+      simulerGraph({ racine: [dossier('1', 'Photos')], 'mon-drive/1': [dossier('2', '2024')] }),
+    )
+
+    render(<ExplorateurDossiers onChoisir={onChoisir} />)
+    await userEvent.click(await screen.findByText('Photos'))
+    await screen.findByText('2024')
+    await userEvent.click(screen.getByRole('button', { name: 'OneDrive' }))
+    await screen.findByText('Photos')
+    await userEvent.click(screen.getByRole('button', { name: 'Choose this folder' }))
+
+    expect(onChoisir).toHaveBeenCalledWith({
+      id: 'id-racine',
+      driveId: 'mon-drive',
+      nom: 'OneDrive',
+      chemin: 'OneDrive',
+    })
   })
 
   it('renvoie le dossier courant avec son chemin lisible', async () => {
@@ -218,6 +315,9 @@ describe('explorateur de dossiers', () => {
       if (url.includes('/me/drive?')) {
         return json({ id: 'mon-drive' })
       }
+      if (url.includes('/me/drive/root?')) {
+        return json({ id: 'id-racine' })
+      }
       if (echecsRestants > 0) {
         echecsRestants -= 1
         return Promise.resolve({ ok: false, status: 503, json: async () => ({}) } as Response)
@@ -254,6 +354,9 @@ describe('explorateur de dossiers', () => {
     const fetchSimule = vi.fn((url: string) => {
       if (url.includes('/me/drive?')) {
         return json({ id: 'mon-drive' })
+      }
+      if (url.includes('/me/drive/root?')) {
+        return json({ id: 'id-racine' })
       }
       if (url.includes('/root/children')) {
         return json({ value: [dossier('1', 'Photos')] })

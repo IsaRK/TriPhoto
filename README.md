@@ -266,6 +266,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 13 | Liens OneDrive expirés renouvelés tout seuls pendant le tri | ✅ Terminé |
 | Lot 14 | Annulations multiples : remonter plusieurs photos de suite | ✅ Terminé |
 | Lot 15 | Relire le dossier pour prendre les photos arrivées pendant le tri | ✅ Terminé |
+| Lot 16 | La racine du OneDrive devient un dossier choisissable comme un autre | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -681,7 +682,6 @@ Microsoft redemandera donc votre consentement.
   de **modification**, pas seulement de lecture.
 - Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse
   la copie chez son propriétaire.
-- La racine du OneDrive n'est pas choisissable : il faut ouvrir un dossier.
 - OneDrive ne produit pas toujours la miniature de tous les fichiers d'une page.
   Les médias concernés sont conservés avec une miniature absente, à charge de
   l'écran de tri de se rabattre sur le fichier lui-même.
@@ -891,3 +891,56 @@ garde-fou.
 
 Au passage, un message d'échec de déplacement ne survit plus à une relecture ni à
 un `Review again` : il parlait d'une liste qui n'existe plus.
+
+## Contenu du Lot 16
+
+Le dossier racine du OneDrive ne pouvait pas être choisi, ni comme dossier à
+trier ni comme destination. Le bouton `Choose this folder` restait estompé tant
+qu'on n'avait pas ouvert un sous-dossier. C'était gênant pour qui garde ses
+photos directement à la racine, et surtout incohérent : la racine est un dossier
+comme un autre.
+
+### Pourquoi c'était bloqué
+
+L'explorateur construit un fil d'Ariane dont la première étape est la racine. Il
+n'avait à ce moment-là aucun identifiant à lui donner : on lit ses enfants par
+`GET /me/drive/root/children`, une adresse par **chemin**, qui ne révèle jamais
+l'identifiant de l'élément lui-même. Or un déplacement Graph se fait vers
+`parentReference.id`, donc vers un **identifiant**. Sans lui, la racine ne pouvait
+figurer dans la configuration.
+
+### Un appel de plus, mémorisé
+
+`lireDossierRacine` demande `GET /me/drive/root?$select=id` et retourne cet
+identifiant accompagné de celui du drive. Comme celui du drive, il ne change
+jamais pour un compte donné : il est mémorisé dans le module, et le réseau n'est
+donc sollicité qu'une seule fois par session, au premier affichage de la racine.
+
+La fonction de remise à zéro réservée aux tests s'appelle maintenant
+`oublierLesIdentifiantsMemorises` : elle en oublie deux, son ancien nom
+`oublierIdDeMonDrive` aurait menti.
+
+### Ce que ça change à l'écran
+
+- `Choose this folder` devient actif à la racine, dès que Graph a répondu. Tant
+  que la réponse n'est pas là, il reste estompé : on ne propose pas un choix
+  qu'on ne saurait pas enregistrer.
+- La note « Open a folder to be able to choose it » a disparu, puisqu'elle est
+  devenue fausse. Le rappel sur les dossiers partagés, lui, reste affiché en
+  permanence — il était auparavant caché dès qu'on descendait d'un niveau, alors
+  que c'est justement là qu'on en a besoin.
+- Une configuration enregistrée sur la racine s'affiche avec le chemin
+  `OneDrive`, comme n'importe quel autre dossier.
+
+### Un échec de lecture de la racine ne bloque plus rien
+
+Trouvé en relecture : cet appel supplémentaire était enchaîné devant la liste des
+dossiers. S'il échouait — un `429` de Graph suffit — l'explorateur affichait son
+écran d'erreur et **aucun dossier n'était listé**. La racine étant le seul point
+d'entrée de l'arborescence, un throttling passager rendait toute la configuration
+impossible, alors qu'avant le Lot 16 cet appel n'existait même pas.
+
+L'identifiant de la racine ne sert qu'à proposer la racine elle-même : son échec
+est désormais avalé (`.catch(() => null)`). Le bouton `Choose this folder` reste
+estompé à la racine, exactement comme avant le lot, mais la navigation vers les
+sous-dossiers continue de fonctionner.

@@ -2,7 +2,7 @@ import { useMsal } from '@azure/msal-react'
 import { Fragment, useEffect, useState } from 'react'
 import { estInteractionRequise, recupererJetonAcces, SCOPES } from '../auth/msal'
 import type { DossierOneDrive } from '../graph/dossiers'
-import { listerDossiersRacine, listerSousDossiers } from '../graph/dossiers'
+import { lireDossierRacine, listerDossiersRacine, listerSousDossiers } from '../graph/dossiers'
 import type { DossierChoisi } from './configuration'
 
 /** Une étape du fil d'Ariane. `id` vaut `null` pour la racine du OneDrive. */
@@ -38,10 +38,23 @@ export default function ExplorateurDossiers({
   const [chemin, setChemin] = useState<EtapeChemin[]>([RACINE])
   const [etat, setEtat] = useState<EtatListe>({ statut: 'chargement' })
   const [tentative, setTentative] = useState(0)
+  /**
+   * Identifiants du dossier racine, lus une seule fois auprès de Graph.
+   *
+   * Le fil d'Ariane repère la racine par `id: null`, faute de mieux au moment où
+   * il est construit. C'est ici qu'on lui rend sa vraie identité, pour qu'elle
+   * soit choisissable comme n'importe quel autre dossier.
+   */
+  const [racine, setRacine] = useState<{ id: string; driveId: string } | null>(null)
 
   const dossierCourant = chemin[chemin.length - 1]
   const idCourant = dossierCourant.id
   const driveCourant = dossierCourant.driveId
+
+  // Identité du dossier affiché : celle de l'étape courante, ou celle de la
+  // racine une fois que Graph nous l'a donnée.
+  const idAChoisir = idCourant ?? racine?.id ?? null
+  const driveAChoisir = driveCourant ?? racine?.driveId ?? null
 
   useEffect(() => {
     if (!compte) {
@@ -56,15 +69,34 @@ export default function ExplorateurDossiers({
     setEtat({ statut: 'chargement' })
 
     recupererJetonAcces(instance, compte)
-      .then((jeton) =>
-        idCourant === null || driveCourant === null
-          ? listerDossiersRacine(jeton)
-          : listerSousDossiers(jeton, driveCourant, idCourant),
-      )
-      .then((dossiers) => {
-        if (!annule) {
-          setEtat({ statut: 'prete', dossiers })
+      .then(async (jeton) => {
+        if (idCourant === null || driveCourant === null) {
+          // À la racine, on demande aussi son identifiant. Les deux appels sont
+          // mémorisés dans la couche Graph : on ne paie le réseau qu'une fois.
+          //
+          // Cet identifiant ne sert qu'à proposer la racine elle-même comme
+          // dossier : son échec ne doit pas emporter la navigation, qui est le
+          // seul moyen d'atteindre tous les autres dossiers. On l'avale donc,
+          // quitte à laisser le bouton « Choose this folder » estompé ici.
+          const racineLue = await lireDossierRacine(jeton).catch(() => null)
+          return {
+            racineLue,
+            dossiers: await listerDossiersRacine(jeton),
+          }
         }
+        return {
+          racineLue: null,
+          dossiers: await listerSousDossiers(jeton, driveCourant, idCourant),
+        }
+      })
+      .then(({ racineLue, dossiers }) => {
+        if (annule) {
+          return
+        }
+        if (racineLue) {
+          setRacine(racineLue)
+        }
+        setEtat({ statut: 'prete', dossiers })
       })
       .catch((erreur: unknown) => {
         if (annule) {
@@ -93,12 +125,12 @@ export default function ExplorateurDossiers({
       .catch((erreur: unknown) => setEtat({ statut: 'erreur', message: decrireErreur(erreur) }))
 
   const choisir = () => {
-    if (idCourant === null || driveCourant === null) {
+    if (idAChoisir === null || driveAChoisir === null) {
       return
     }
     onChoisir({
-      id: idCourant,
-      driveId: driveCourant,
+      id: idAChoisir,
+      driveId: driveAChoisir,
       nom: dossierCourant.nom,
       chemin: chemin.map((etape) => etape.nom).join(' / '),
     })
@@ -172,16 +204,19 @@ export default function ExplorateurDossiers({
         </ul>
       ) : null}
 
-      <button type="button" className="action" onClick={choisir} disabled={idCourant === null}>
+      <button
+        type="button"
+        className="action"
+        onClick={choisir}
+        disabled={idAChoisir === null || driveAChoisir === null}
+      >
         Choose this folder
       </button>
 
-      {idCourant === null ? (
-        <p className="note">
-          Open a folder to be able to choose it. A folder shared by someone else only shows up here
-          after an “Add shortcut to My files” from onedrive.live.com.
-        </p>
-      ) : null}
+      <p className="note">
+        A folder shared by someone else only shows up here after an “Add shortcut to My files” from
+        onedrive.live.com.
+      </p>
     </section>
   )
 }
