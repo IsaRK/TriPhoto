@@ -232,9 +232,15 @@ export default function EcranTri() {
    * Repart du premier média. Les échecs de chargement de la passe précédente
    * sont oubliés : les liens renouvelés il y a une heure ont pu expirer à leur
    * tour, et un média jugé illisible mérite une seconde chance.
+   *
+   * La pile d'annulation est vidée elle aussi. Elle mémorise des positions dans
+   * la liste, or on vient de revenir au début : garder ces positions ferait
+   * sauter l'annulation en avant, et pourrait ressortir de son dossier un média
+   * déjà rangé lors de la passe précédente.
    */
   const reprendreDepuisLeDebut = () => {
     setIndex(0)
+    setDeplacements([])
     setUrlsCassees([])
     setIdsRafraichis([])
     setIdsIllisibles([])

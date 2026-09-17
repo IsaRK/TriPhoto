@@ -812,5 +812,10 @@ eux-mêmes : une panne réseau ne doit jamais coûter le travail déjà fait.
 Un déplacement mémorisé ne pèse que quelques centaines d'octets, et le tri d'un
 dossier se compte en centaines de photos, pas en millions. Plafonner la pile
 aurait ajouté un réglage à comprendre et une limite à expliquer, pour une
-économie de mémoire invisible. La pile est simplement remise à zéro quand la
-liste des médias est relue.
+économie de mémoire invisible.
+
+La pile est remise à zéro dans les deux cas où les positions qu'elle mémorise
+cessent d'avoir un sens : quand la liste des médias est relue, et quand
+« Review again » repart du premier média. Sans cette seconde remise à zéro, une
+annulation de trop lors de la seconde passe ferait ressortir de son dossier une
+photo rangée pendant la première.
