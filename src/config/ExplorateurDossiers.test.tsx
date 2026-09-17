@@ -158,6 +158,41 @@ describe('explorateur de dossiers', () => {
     expect(screen.getByRole('button', { name: 'Choose this folder' })).toBeEnabled()
   })
 
+  it('reste navigable quand l’identifiant de la racine est refusé', async () => {
+    const onChoisir = vi.fn()
+    const fetchSimule = vi.fn((url: string) => {
+      if (url.includes('/me/drive?')) {
+        return json({ id: 'mon-drive' })
+      }
+      if (url.includes('/me/drive/root?')) {
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          text: async () => 'Too many requests',
+        } as Response)
+      }
+      if (url.includes('/root/children')) {
+        return json({ value: [dossier('1', 'Photos')] })
+      }
+      return json({ value: [dossier('2', '2024')] })
+    })
+    vi.stubGlobal('fetch', fetchSimule)
+
+    render(<ExplorateurDossiers onChoisir={onChoisir} />)
+
+    // La racine seule devient inchoisissable ; tout le reste de l'arborescence
+    // doit rester atteignable, sans quoi la configuration serait bloquée.
+    await userEvent.click(await screen.findByText('Photos'))
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose this folder' }))
+
+    expect(onChoisir).toHaveBeenCalledWith({
+      id: '1',
+      driveId: 'mon-drive',
+      nom: 'Photos',
+      chemin: 'OneDrive / Photos',
+    })
+  })
+
   it('revient à la racine choisissable après être remonté du fil d’Ariane', async () => {
     const onChoisir = vi.fn()
     vi.stubGlobal(

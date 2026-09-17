@@ -73,8 +73,14 @@ export default function ExplorateurDossiers({
         if (idCourant === null || driveCourant === null) {
           // À la racine, on demande aussi son identifiant. Les deux appels sont
           // mémorisés dans la couche Graph : on ne paie le réseau qu'une fois.
+          //
+          // Cet identifiant ne sert qu'à proposer la racine elle-même comme
+          // dossier : son échec ne doit pas emporter la navigation, qui est le
+          // seul moyen d'atteindre tous les autres dossiers. On l'avale donc,
+          // quitte à laisser le bouton « Choose this folder » estompé ici.
+          const racineLue = await lireDossierRacine(jeton).catch(() => null)
           return {
-            racineLue: await lireDossierRacine(jeton),
+            racineLue,
             dossiers: await listerDossiersRacine(jeton),
           }
         }

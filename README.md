@@ -931,3 +931,16 @@ La fonction de remise à zéro réservée aux tests s'appelle maintenant
   que c'est justement là qu'on en a besoin.
 - Une configuration enregistrée sur la racine s'affiche avec le chemin
   `OneDrive`, comme n'importe quel autre dossier.
+
+### Un échec de lecture de la racine ne bloque plus rien
+
+Trouvé en relecture : cet appel supplémentaire était enchaîné devant la liste des
+dossiers. S'il échouait — un `429` de Graph suffit — l'explorateur affichait son
+écran d'erreur et **aucun dossier n'était listé**. La racine étant le seul point
+d'entrée de l'arborescence, un throttling passager rendait toute la configuration
+impossible, alors qu'avant le Lot 16 cet appel n'existait même pas.
+
+L'identifiant de la racine ne sert qu'à proposer la racine elle-même : son échec
+est désormais avalé (`.catch(() => null)`). Le bouton `Choose this folder` reste
+estompé à la racine, exactement comme avant le lot, mais la navigation vers les
+sous-dossiers continue de fonctionner.
