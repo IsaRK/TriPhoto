@@ -613,8 +613,10 @@ Retouche d'interface de l'écran de configuration, sans nouvelle fonctionnalité
 
 ## Les dossiers partagés
 
-Cas visé : **la source est chez vous, les destinations sont des dossiers partagés**
-par d'autres personnes (un album de famille, par exemple).
+Cas visé : **trier entièrement à l'intérieur d'un dossier partagé** par quelqu'un
+d'autre — le dossier à trier, les destinations et la Poubelle vivent tous dans
+son OneDrive. Trier depuis son propre OneDrive vers un dossier partagé (ou
+l'inverse) n'est pas possible : voir « Conséquence sur le tri » plus bas.
 
 ### Comment les rendre visibles
 

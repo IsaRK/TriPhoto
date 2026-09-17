@@ -42,8 +42,8 @@ let idMonDriveMemorise: string | undefined
 
 /**
  * Identifiant de notre propre drive. Il ne sert pas à construire les URL mais à
- * reconnaître les dossiers qui ne sont pas chez nous : c'est cette distinction qui
- * décidera, au moment du tri, entre un déplacement et une copie.
+ * reconnaître les dossiers qui ne sont pas chez nous : c'est ce qui donne la
+ * mention « shared » dans l'explorateur (voir `convertir`).
  *
  * Il ne change jamais pour un compte donné : on ne le demande qu'une fois.
  */
