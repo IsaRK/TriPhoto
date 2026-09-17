@@ -267,6 +267,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 10 | Mises à jour qui arrivent vraiment sur le téléphone | ✅ Terminé |
 | Lot 11 | Interface entièrement en anglais, écran de configuration compris | ✅ Terminé |
 | Lot 12 | Revue de sécurité et durcissement de la pagination Graph | ✅ Terminé |
+| Lot 13 | Liens OneDrive expirés renouvelés tout seuls pendant le tri | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -683,9 +684,6 @@ Microsoft redemandera donc votre consentement.
 - Annuler un tri vers un dossier partagé récupère bien votre fichier, mais laisse
   la copie chez son propriétaire.
 - La racine du OneDrive n'est pas choisissable : il faut ouvrir un dossier.
-- Les URL de téléchargement renvoyées par Graph expirent au bout d'environ une heure,
-  et l'écran de tri ne les redemande pas encore : sur une session très longue, les
-  médias finissent par ne plus s'afficher. Recharger la page suffit à repartir.
 - La liste des médias est lue une seule fois à l'entrée dans l'écran de tri. Les
   photos ajoutées au dossier pendant le tri n'apparaissent qu'au rechargement.
 - OneDrive ne produit pas toujours la miniature de tous les fichiers d'une page.
@@ -733,3 +731,39 @@ quotidien : il refuse le `push` **avant** que le secret n'atteigne GitHub.
 La protection de branche sur `main` reste volontairement désactivée : sur un projet
 à une seule personne, elle empêcherait le merge direct des PR sans rien protéger de
 plus.
+
+## Contenu du Lot 13
+
+Les liens que Microsoft Graph renvoie pour afficher une photo — l'URL de
+téléchargement comme celle de la miniature — sont **signés et temporaires** :
+ils expirent au bout d'environ une heure. Jusqu'ici, la liste des médias était
+lue une seule fois à l'entrée dans l'écran de tri, avec les liens de ce
+moment-là. Au bout d'une heure de tri, les photos cessaient donc de s'afficher
+alors que tout allait bien côté OneDrive, et il fallait recharger la page — en
+perdant au passage la possibilité d'annuler le dernier envoi à la poubelle.
+
+### Comment le problème est repéré
+
+Aucun minuteur, aucune date d'expiration à suivre : on écoute simplement
+l'évènement `error` de la balise `<img>` ou `<video>`. C'est le navigateur
+lui-même qui dit que le lien ne marche plus, ce qui couvre l'expiration comme
+n'importe quelle autre panne de lien.
+
+### Ce qui se passe alors
+
+`relireMedia` (dans `src/graph/medias.ts`) redemande à Graph **ce seul média**,
+avec les mêmes champs que la liste, et l'écran remplace l'ancienne entrée par la
+nouvelle, à la même place. La position dans le tri, la progression affichée et le
+média mémorisé pour « Cancel last action » ne bougent pas : l'utilisateur ne voit
+qu'un bref clignotement.
+
+Le média suivant, celui qui est préchargé hors de l'écran, bénéficie du même
+traitement : si son lien a expiré, il est renouvelé avant même d'être affiché.
+
+### Et si le lien frais ne marche pas non plus
+
+On n'essaie **qu'une fois par média**. Un second échec veut dire autre chose
+qu'un lien périmé — fichier supprimé entre-temps, format que le navigateur ne
+sait pas lire — et réessayer en boucle ne ferait que marteler Graph. Dans ce cas
+la carte affiche un message clair, et les boutons « Delete » et « Skip » restent
+actifs : un média qu'on ne peut pas voir reste un média qu'on peut ranger.

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { listerMedias } from './medias'
+import { listerMedias, relireMedia } from './medias'
 
 function reponse(donnees: unknown, options: { ok?: boolean; status?: number } = {}): Response {
   return {
@@ -272,5 +272,56 @@ describe('lecture des médias d’un dossier', () => {
     simulerEchecReseau()
 
     await expect(listerMedias('jeton', 'mon-drive', 'dossier-1')).rejects.toThrow('réseau coupé')
+  })
+})
+
+describe('relecture d’un seul média', () => {
+  it('interroge l’élément dans son drive avec les mêmes champs que la liste', async () => {
+    const fetchSimule = simulerAppels(reponse(photo('a', '2024-03-01T00:00:00Z')))
+
+    await relireMedia('jeton-de-test', 'drive-partage', 'media-1')
+
+    const url = fetchSimule.mock.calls[0][0] as string
+    expect(url).toContain('/drives/drive-partage/items/media-1?')
+    expect(url).toContain('@microsoft.graph.downloadUrl')
+    expect(url).toContain('$expand=thumbnails')
+    // Pas de $top : on ne demande qu’un seul élément, pas une page.
+    expect(url).not.toContain('$top')
+    expect(fetchSimule.mock.calls[0][1]).toEqual({
+      headers: { Authorization: 'Bearer jeton-de-test' },
+    })
+  })
+
+  it('renvoie le média avec ses liens frais', async () => {
+    simulerAppels(
+      reponse(photo('a', '2024-03-01T00:00:00Z', { miniature: 'https://frais/miniature.jpg' })),
+    )
+
+    const media = await relireMedia('jeton', 'mon-drive', 'a')
+
+    expect(media.id).toBe('a')
+    expect(media.urlMiniature).toBe('https://frais/miniature.jpg')
+    expect(media.urlTelechargement).toBe('https://telechargement/a')
+    expect(media.priseLe).toBe('2024-03-01T00:00:00Z')
+  })
+
+  it('signale un refus de Microsoft Graph', async () => {
+    simulerAppels(reponse({}, { ok: false, status: 404 }))
+
+    await expect(relireMedia('jeton', 'mon-drive', 'disparu')).rejects.toThrow(
+      'Microsoft Graph refused to reload this item (code 404).',
+    )
+  })
+
+  it('refuse un élément qui n’est plus une photo ni une vidéo', async () => {
+    simulerAppels(reponse({ id: 'a', name: 'notes.txt', file: { mimeType: 'text/plain' } }))
+
+    await expect(relireMedia('jeton', 'mon-drive', 'a')).rejects.toThrow('not a photo or a video')
+  })
+
+  it('laisse remonter une erreur réseau', async () => {
+    simulerEchecReseau()
+
+    await expect(relireMedia('jeton', 'mon-drive', 'a')).rejects.toThrow('réseau coupé')
   })
 })
