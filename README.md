@@ -485,6 +485,11 @@ ligne » plus haut.
   croire qu'il protège quelque chose.
 - Pas de déploiement sur les pull requests : il n'existe qu'un seul site Pages par dépôt,
   publier une branche écraserait la version en service.
+- Les actions du workflow sont maintenues à leur version majeure courante : GitHub
+  désactive périodiquement les anciens moteurs Node sur ses runners, et une action
+  restée en arrière finit par ne plus démarrer du tout. Le `node-version` du build,
+  lui, reste aligné sur la machine de développement : un build qui passe en ligne doit
+  passer en local, et l'inverse.
 
 ### Contenu du Lot 8
 
