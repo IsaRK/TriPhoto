@@ -651,16 +651,14 @@ describe('poubelle et annulation', () => {
     )
   })
 
-  it('n’annule que la dernière suppression, sans remonter à la précédente', async () => {
+  it('annule plusieurs déplacements de suite, du plus récent au plus ancien', async () => {
     configurationComplete()
-    vi.stubGlobal(
-      'fetch',
-      simulerGraphEtDeplacements([
-        elementGraph({ id: 'a', name: 'a.jpg' }),
-        elementGraph({ id: 'b', name: 'b.jpg' }),
-        elementGraph({ id: 'c', name: 'c.jpg' }),
-      ]),
-    )
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+      elementGraph({ id: 'c', name: 'c.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
     afficher()
     await screen.findByAltText('a.jpg')
 
@@ -669,13 +667,190 @@ describe('poubelle et annulation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await screen.findByAltText('c.jpg')
 
+    // Premier appui : on récupère « b », la dernière supprimée.
     await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
-
-    // On récupère « b », la dernière supprimée, et on s'arrête là : « a » est acquis.
     expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
+
+    // Second appui : on remonte jusqu'à « a ».
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+
+    // La pile est vide : il n'y a plus rien à annuler.
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeDisabled(),
     )
+    // Deux suppressions, puis deux retours vers le dossier à trier.
+    expect(deplacementsDemandes(fetchSimule).map((d) => d.corps.parentReference.id)).toEqual([
+      'Corbeille',
+      'Corbeille',
+      'Pellicule',
+      'Pellicule',
+    ])
+  })
+
+  it('annule aussi bien un swipe qu’une suppression, dans l’ordre inverse', async () => {
+    enregistrer({
+      source: dossier('Pellicule'),
+      poubelle: dossier('Corbeille'),
+      gauche: dossier('Vacances', 'Vacances'),
+    })
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+      elementGraph({ id: 'c', name: 'c.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    // « a » part vers une destination, « b » à la poubelle.
+    await userEvent.click(screen.getByRole('button', { name: 'Vacances' }))
+    await screen.findByAltText('b.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByAltText('c.jpg')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    expect(deplacementsDemandes(fetchSimule).map((d) => d.corps.parentReference.id)).toEqual([
+      'Vacances',
+      'Corbeille',
+      'Pellicule',
+      'Pellicule',
+    ])
+  })
+
+  it('revient à la bonne position quand un média a été passé entre deux déplacements', async () => {
+    enregistrer({
+      source: dossier('Pellicule'),
+      poubelle: dossier('Corbeille'),
+      gauche: dossier('Vacances', 'Vacances'),
+    })
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+      elementGraph({ id: 'c', name: 'c.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    // « a » est rangée, « b » est seulement passée, « c » part à la poubelle.
+    await userEvent.click(screen.getByRole('button', { name: 'Vacances' }))
+    await screen.findByAltText('b.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    await screen.findByAltText('c.jpg')
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByText('Sorting complete')
+
+    // La première annulation ramène « c », troisième de la liste.
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    expect(await screen.findByAltText('c.jpg')).toBeInTheDocument()
+    expect(progression()).toBe('3 / 3')
+
+    // La seconde saute par-dessus « b », qui n'a jamais été déplacée : on
+    // revient à la position exacte de « a », pas simplement d'un cran en arrière.
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    expect(progression()).toBe('1 / 3')
+  })
+
+  it('vide la pile d’annulation quand on repart du début', async () => {
+    configurationComplete()
+    const fetchSimule = simulerGraphEtDeplacements([
+      elementGraph({ id: 'a', name: 'a.jpg' }),
+      elementGraph({ id: 'b', name: 'b.jpg' }),
+      elementGraph({ id: 'c', name: 'c.jpg' }),
+    ])
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+    await screen.findByAltText('a.jpg')
+
+    for (const nom of ['a.jpg', 'b.jpg', 'c.jpg']) {
+      await screen.findByAltText(nom)
+      await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    }
+    await screen.findByText('Sorting complete')
+
+    // Repartir du début oublie la passe précédente : les positions mémorisées
+    // ne veulent plus rien dire maintenant qu'on est revenu au premier média.
+    await userEvent.click(screen.getByRole('button', { name: 'Review again' }))
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeDisabled()
+
+    // Une suppression de cette passe-ci s'annule normalement, et une seule fois :
+    // sans la remise à zéro, un second appui ferait ressortir « c » de sa poubelle.
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeDisabled(),
+    )
+    expect(deplacementsDemandes(fetchSimule).map((d) => d.corps.parentReference.id)).toEqual([
+      'Corbeille',
+      'Corbeille',
+      'Corbeille',
+      'Corbeille',
+      'Pellicule',
+    ])
+  })
+
+  it('garde toute la pile quand une annulation échoue', async () => {
+    configurationComplete()
+    let refuser = false
+    const fetchSimule = vi.fn((_url: string, options?: RequestInit) => {
+      if (options?.method !== 'PATCH') {
+        return json({
+          value: [
+            elementGraph({ id: 'a', name: 'a.jpg' }),
+            elementGraph({ id: 'b', name: 'b.jpg' }),
+            elementGraph({ id: 'c', name: 'c.jpg' }),
+          ],
+        })
+      }
+      return refuser
+        ? Promise.resolve({ ok: false, status: 503, json: async () => ({}) } as Response)
+        : json({})
+    })
+    vi.stubGlobal('fetch', fetchSimule)
+    afficher()
+
+    for (const nom of ['a.jpg', 'b.jpg', 'c.jpg']) {
+      await screen.findByAltText(nom)
+      await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    }
+    await screen.findByText('Sorting complete')
+
+    refuser = true
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    await screen.findByText(/The move failed/)
+
+    // L'échec n'a rien dépilé : les trois photos restent rattrapables, dans
+    // l'ordre inverse de leur suppression.
+    refuser = false
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    expect(await screen.findByAltText('c.jpg')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    expect(await screen.findByAltText('b.jpg')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel last action' }))
+    expect(await screen.findByAltText('a.jpg')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Cancel last action' })).toBeDisabled(),
+    )
+
+    // Trois suppressions, une annulation refusée, puis les trois retours.
+    expect(deplacementsDemandes(fetchSimule).map((d) => d.corps.parentReference.id)).toEqual([
+      'Corbeille',
+      'Corbeille',
+      'Corbeille',
+      'Pellicule',
+      'Pellicule',
+      'Pellicule',
+      'Pellicule',
+    ])
   })
 
   it('garde le média récupérable quand un déplacement échoue', async () => {

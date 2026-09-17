@@ -7,10 +7,6 @@ chaque média est envoyé vers l'un des dossiers de destination d'un simple gest
 de `TriPhoto`, GitHub Pages y est sensible (voir « [L'adresse exacte, et le piège de la
 casse](#ladresse-exacte-et-le-piège-de-la-casse) »).
 
-> Le README complet (choix techniques, création de l'app registration Entra, installation
-> de la PWA sur téléphone, structure du projet) sera rédigé au Lot 10. Ce document se
-> limite pour l'instant à l'avancement et au démarrage en développement.
-
 ## Démarrage en développement
 
 ```bash
@@ -268,6 +264,7 @@ que les couleurs des SVG correspondent toujours à la table des directions.
 | Lot 11 | Interface entièrement en anglais, écran de configuration compris | ✅ Terminé |
 | Lot 12 | Revue de sécurité et durcissement de la pagination Graph | ✅ Terminé |
 | Lot 13 | Liens OneDrive expirés renouvelés tout seuls pendant le tri | ✅ Terminé |
+| Lot 14 | Annulations multiples : remonter plusieurs photos de suite | ✅ Terminé |
 
 ### Contenu du Lot 0
 
@@ -397,13 +394,13 @@ quatre destinations sont le sujet du Lot 6, décrit plus bas.
   configuré, par un `PATCH /drives/{driveId}/items/{itemId}` avec
   `{ "parentReference": { "id": "<idPoubelle>" } }`.
 - **Annuler** refait le même appel en sens inverse, vers le dossier à trier, et **réaffiche la
-  photo récupérée**. `Cancel last action` défait **uniquement le dernier déplacement** : on ne
-  remonte pas aux précédents, qui sont acquis. Une fois l'annulation faite, le bouton
-  redevient inactif jusqu'au prochain déplacement.
-- `Cancel last action` reste proposé sur l'écran « Sorting complete » quand une suppression
-  est encore rattrapable : sans cela, le dernier média envoyé à la poubelle ne serait plus
-  récupérable depuis TriPhoto.
-- Un déplacement qui échoue **ne perd rien** : la liste et le média récupérable restent en
+  photo récupérée**. `Cancel last action` défait le **dernier déplacement en date**, puis celui
+  d'avant, puis celui d'encore avant : la pile se dépile à chaque appui, jusqu'à revenir au
+  début du tri. Le bouton redevient inactif quand il n'y a plus rien à annuler.
+- `Cancel last action` reste proposé sur l'écran « Sorting complete » tant qu'un déplacement
+  est encore rattrapable : sans cela, les derniers médias envoyés à la poubelle ne seraient
+  plus récupérables depuis TriPhoto.
+- Un déplacement qui échoue **ne perd rien** : la liste et la pile d'annulation restent en
   place, un message s'affiche et le geste peut être refait.
 - Un dossier situé sur **un autre OneDrive** (dossier partagé) est refusé avec un message
   clair : `PATCH parentReference` ne traverse pas les drives. Ce cas relève d'une copie,
@@ -453,7 +450,7 @@ dossier où elle doit aller, et elle y va.
   pour ne pas faire défiler la page en même temps.
 - Un swipe est un déplacement comme un autre : `Cancel last action` **annule aussi un
   swipe**, pas seulement un `Delete`. Il défait toujours le dernier déplacement en date,
-  quelle qu'en soit l'origine.
+  quelle qu'en soit l'origine, et les appuis suivants remontent la pile de la même façon.
 - La logique du geste est isolée dans `src/tri/geste.ts`, en fonctions **pures**
   (`directionDuGeste`, `rotationCarte`). Elles se testent en une ligne, sans simuler ni
   navigateur ni doigt, et c'est là que se trouvent les règles de seuil et d'axe dominant.
@@ -782,3 +779,43 @@ condamnée pour le reste de la session.
 Une **session Microsoft expire elle aussi au bout d'une heure**. C'est le même
 moment, mais pas le même problème : si la relecture échoue faute de jeton, l'écran
 propose de se reconnecter, au lieu d'accuser les médias les uns après les autres.
+
+## Contenu du Lot 14
+
+Jusqu'ici, « Cancel last action » ne défaisait **que le dernier déplacement** :
+une fois la photo d'avant rangée, elle l'était pour de bon. Le cahier des charges
+demandait une pile permettant plusieurs annulations successives ; c'est
+maintenant le cas.
+
+### Une pile plutôt qu'un seul souvenir
+
+L'écran de tri garde la liste de tous les déplacements de la session, du plus
+ancien au plus récent : pour chacun, le média et sa position dans la liste.
+Chaque appui sur « Cancel last action » renvoie le média du sommet vers le
+dossier à trier, le réaffiche, puis **dépile**. Un second appui remonte le
+déplacement d'avant, un troisième celui d'encore avant, jusqu'à revenir au début
+du tri. Le bouton ne redevient estompé que lorsqu'il n'y a plus rien à annuler.
+
+Cela vaut pour **tous** les déplacements, sans distinction : un swipe vers une
+destination s'annule exactement comme un envoi à la poubelle.
+
+### On ne dépile qu'une fois Graph d'accord
+
+Le retrait de la pile se fait dans la fonction appelée **après** la réponse de
+Microsoft Graph, jamais avant. Une annulation qui échoue — réseau coupé, Graph
+indisponible — laisse donc la pile intacte : le message s'affiche, et le même
+bouton permet de réessayer. C'est la règle déjà appliquée aux déplacements
+eux-mêmes : une panne réseau ne doit jamais coûter le travail déjà fait.
+
+### Pourquoi aucune limite de profondeur
+
+Un déplacement mémorisé ne pèse que quelques centaines d'octets, et le tri d'un
+dossier se compte en centaines de photos, pas en millions. Plafonner la pile
+aurait ajouté un réglage à comprendre et une limite à expliquer, pour une
+économie de mémoire invisible.
+
+La pile est remise à zéro dans les deux cas où les positions qu'elle mémorise
+cessent d'avoir un sens : quand la liste des médias est relue, et quand
+« Review again » repart du premier média. Sans cette seconde remise à zéro, une
+annulation de trop lors de la seconde passe ferait ressortir de son dossier une
+photo rangée pendant la première.
